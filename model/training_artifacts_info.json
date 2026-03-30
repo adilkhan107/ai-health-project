@@ -1,0 +1,32 @@
+{
+  "feature_columns": [
+    "Age",
+    "Temperature",
+    "Heart_Rate",
+    "Gender",
+    "Blood_Pressure",
+    "Symptoms"
+  ],
+  "numeric_cols": [
+    "Age",
+    "Temperature",
+    "Heart_Rate"
+  ],
+  "categorical_cols": [
+    "Gender",
+    "Blood_Pressure",
+    "Symptoms"
+  ],
+  "text_cols": [],
+  "target_classes": [
+    "Bronchitis",
+    "Common Cold",
+    "Dengue (Mild)",
+    "Fatigue",
+    "Flu",
+    "Food Poisoning",
+    "Pneumonia",
+    "Throat Infection",
+    "Viral Fever"
+  ]
+}

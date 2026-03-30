@@ -1,0 +1,11 @@
+Patient_ID,Age,Gender,Temperature,Heart_Rate,Blood_Pressure,Symptoms,Diagnosis,Medicine_Advice
+1,25,Male,98.6,72,120/80,"Fever, cough, headache",Common Cold,"Rest, hydration, paracetamol"
+2,40,Female,101.2,90,140/90,"High fever, sore throat, tiredness",Viral Fever,"Paracetamol, fluids, rest"
+3,60,Male,100.4,85,130/85,"Chest pain, cough, breathlessness",Pneumonia,"Antibiotics, steam inhalation"
+4,35,Female,97.5,70,110/70,"Fatigue, mild cough",Flu,"Rest, warm fluids, vitamin C"
+5,50,Male,102.0,95,145/95,"Fever, vomiting, stomach pain",Food Poisoning,"ORS, antibiotics, avoid oily food"
+6,28,Female,98.7,80,118/78,"Body ache, weakness",Dengue (Mild),"Hydration, paracetamol, rest"
+7,70,Male,99.1,88,135/88,"Shortness of breath, cough",Bronchitis,"Antibiotics, inhaler, warm fluids"
+8,45,Female,100.2,78,125/82,"Headache, mild fever",Flu,"Rest, fluids, light diet"
+9,55,Male,98.4,75,128/84,"Tiredness, loss of appetite",Fatigue,"Rest, iron-rich food"
+10,38,Female,97.9,73,115/75,"Sore throat, fatigue",Throat Infection,"Salt water gargle, rest"

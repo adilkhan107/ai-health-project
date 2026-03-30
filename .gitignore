@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Database files (contains patient data)
+database/*.db
+
+# Model artifacts (large files)
+model/final_pipeline.joblib
+
+# Sensitive configuration — keep a template, not the real key
+# config/openai_config.py  ← committed as template (no real key)
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Nested git repos
+Rural-Healthcare/
