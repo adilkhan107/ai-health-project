@@ -821,15 +821,15 @@ with tab5:
                         # Save analysis to patient history if existing patient
                         if analysis_type == "Existing Patient" and 'patient_id' in locals():
                             if st.button("💾 Save Analysis to History", key="save_ai_analysis"):
-                                db.add_medical_record(
+                                db.add_diagnosis(
                                     patient_id=patient_id,
                                     symptoms=symptoms,
                                     diagnosis=analysis['diagnosis'],
                                     temperature=temperature,
                                     heart_rate=heart_rate,
                                     blood_pressure=blood_pressure,
-                                    medicine_prescribed=analysis['medicine_advice'],
-                                    doctor_notes=f"AI Analysis: {analysis['additional_advice']}"
+                                    medicine=analysis['medicine_advice'],
+                                    notes=f"AI Analysis: {analysis['additional_advice']}"
                                 )
                                 st.success("✅ Analysis saved to patient history!")
 
@@ -852,7 +852,7 @@ with tab5:
         """)
 
 # ===== TAB 6: Model Insights =====
-with tab5:
+with tab6:
     st.header("📈 Model Insights")
     st.markdown('<div class="card">Explore model information, feature importance, and available diagnoses.</div>', unsafe_allow_html=True)
     
@@ -917,132 +917,176 @@ with tab5:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ===== TAB 7: Find Nearby Doctors =====
-with tab6:
+with tab7:
+    import requests as _requests
+    from streamlit_geolocation import streamlit_geolocation
+
     st.header("🗺️ Find Nearby Doctors & Hospitals")
-    st.markdown('<div class="card">Use this interactive tool to find healthcare professionals and hospitals near your location.</div>', unsafe_allow_html=True)
-    
+    st.markdown('<div class="card">Find real doctors and hospitals near your actual location using live map data.</div>', unsafe_allow_html=True)
+
+    # ── helper: query Overpass API for real healthcare places ──────────────
+    @st.cache_data(ttl=300, show_spinner=False)
+    def fetch_real_doctors(lat, lon, radius_m=5000):
+        """Fetch real hospitals/clinics/doctors from OpenStreetMap via Overpass API."""
+        overpass_url = "https://overpass-api.de/api/interpreter"
+        query = f"""
+        [out:json][timeout:25];
+        (
+          node["amenity"~"hospital|clinic|doctors|pharmacy|health_centre"](around:{radius_m},{lat},{lon});
+          way["amenity"~"hospital|clinic|doctors|pharmacy|health_centre"](around:{radius_m},{lat},{lon});
+        );
+        out center tags;
+        """
+        try:
+            resp = _requests.post(overpass_url, data={"data": query}, timeout=30)
+            resp.raise_for_status()
+            elements = resp.json().get("elements", [])
+            results = []
+            for el in elements:
+                tags = el.get("tags", {})
+                name = tags.get("name") or tags.get("name:en") or tags.get("operator")
+                if not name:
+                    continue
+                if el["type"] == "node":
+                    elat, elon = el["lat"], el["lon"]
+                else:
+                    elat = el.get("center", {}).get("lat")
+                    elon = el.get("center", {}).get("lon")
+                if not elat or not elon:
+                    continue
+                amenity = tags.get("amenity", "clinic").replace("_", " ").title()
+                phone = tags.get("phone") or tags.get("contact:phone") or "N/A"
+                address_parts = [
+                    tags.get("addr:housenumber", ""),
+                    tags.get("addr:street", ""),
+                    tags.get("addr:city", ""),
+                ]
+                address = ", ".join(p for p in address_parts if p) or tags.get("addr:full", "N/A")
+                dist = round(geodesic((lat, lon), (elat, elon)).km, 2)
+                results.append({
+                    "name": name,
+                    "type": amenity,
+                    "lat": elat,
+                    "lon": elon,
+                    "phone": phone,
+                    "address": address,
+                    "distance_km": dist,
+                    "opening_hours": tags.get("opening_hours", "N/A"),
+                    "website": tags.get("website") or tags.get("contact:website", "N/A"),
+                })
+            return sorted(results, key=lambda x: x["distance_km"])
+        except Exception as e:
+            return []
+
+    # ── GPS via streamlit-geolocation (works on http too) ─────────────────
+    st.subheader("📍 Detect Your Real Location")
+    st.caption("Click the button below — your browser will ask for location permission.")
+    location = streamlit_geolocation()
+
+    gps_lat = location.get("latitude") if location else None
+    gps_lon = location.get("longitude") if location else None
+
+    if gps_lat and gps_lon:
+        st.success(f"✅ Real location detected: {gps_lat:.5f}, {gps_lon:.5f}")
+
+    # ── Manual input (fallback) ────────────────────────────────────────────
     col1, col2 = st.columns([2, 1])
-    
     with col1:
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("📍 Location Input")
-        st.write("**Enter your location (latitude & longitude) or use default:**")
-        
-        default_user_lat = 28.7041
-        default_user_lon = 77.1025
-        
-        user_lat = st.number_input("Your Latitude", value=default_user_lat, format="%.4f")
-        user_lon = st.number_input("Your Longitude", value=default_user_lon, format="%.4f")
-        
-        max_distance = st.slider("🔍 Search within (km)", min_value=1, max_value=50, value=15, step=1)
+        st.subheader("📍 Your Location")
+        default_lat = gps_lat if gps_lat else 28.7041
+        default_lon = gps_lon if gps_lon else 77.1025
+        user_lat = st.number_input("Latitude", value=default_lat, format="%.6f", key="doc_lat")
+        user_lon = st.number_input("Longitude", value=default_lon, format="%.6f", key="doc_lon")
+        st.caption("💡 Click 'Detect My Real Location' above to auto-fill, or enter manually.")
         st.markdown('</div>', unsafe_allow_html=True)
-    
+
     with col2:
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("🏥 Doctor Type Filter")
-        doctor_types = ["All"] + list(set([d["type"] for d in doctors_data]))
-        selected_type = st.selectbox("Filter by type", doctor_types)
+        st.subheader("🔍 Search Settings")
+        max_distance_km = st.slider("Radius (km)", min_value=1, max_value=20, value=5, step=1, key="doc_radius")
+        facility_filter = st.selectbox("Facility Type", ["All", "Hospital", "Clinic", "Doctors", "Pharmacy", "Health Centre"], key="doc_filter")
         st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Calculate distances
-    doctors_df = pd.DataFrame(doctors_data)
-    doctors_df["distance_km"] = doctors_df.apply(
-        lambda row: geodesic((user_lat, user_lon), (row["lat"], row["lon"])).km,
-        axis=1
-    )
-    
-    # Filter by distance
-    filtered_doctors = doctors_df[doctors_df["distance_km"] <= max_distance].copy()
-    
-    # Filter by type
-    if selected_type != "All":
-        filtered_doctors = filtered_doctors[filtered_doctors["type"] == selected_type]
-    
-    filtered_doctors = filtered_doctors.sort_values("distance_km")
-    
-    # Create interactive map
+
+    # ── Fetch real data ────────────────────────────────────────────────────
+    if st.button("🔍 Search Nearby Doctors & Hospitals", key="search_real_doctors"):
+        st.session_state["real_doctors_result"] = fetch_real_doctors(user_lat, user_lon, radius_m=max_distance_km * 1000)
+        st.session_state["real_doctors_lat"] = user_lat
+        st.session_state["real_doctors_lon"] = user_lon
+
+    real_doctors = st.session_state.get("real_doctors_result", [])
+    search_lat = st.session_state.get("real_doctors_lat", user_lat)
+    search_lon = st.session_state.get("real_doctors_lon", user_lon)
+
+    # Apply facility filter
+    if facility_filter != "All" and real_doctors:
+        real_doctors = [d for d in real_doctors if facility_filter.lower() in d["type"].lower()]
+
+    # ── Map ────────────────────────────────────────────────────────────────
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("📍 Interactive Map")
-    
-    map_center = [user_lat, user_lon]
-    m = folium.Map(location=map_center, zoom_start=12, tiles="OpenStreetMap")
-    
-    # Add user location marker
+    st.subheader("🗺️ Live Map")
+    m = folium.Map(location=[search_lat, search_lon], zoom_start=14, tiles="OpenStreetMap")
+
+    # User marker
     folium.Marker(
-        location=[user_lat, user_lon],
+        location=[search_lat, search_lon],
         popup="📌 Your Location",
-        icon=folium.Icon(color="blue", icon="location-dot", prefix="fa"),
-        tooltip="Your Current Location"
+        icon=folium.Icon(color="blue", icon="home"),
+        tooltip="Your Location"
     ).add_to(m)
-    
-    # Add doctor/hospital markers
-    colors = {"General Practitioner": "green", "Hospital": "red", "Health Center": "orange", 
-              "Pediatrician": "lightblue", "Cardiologist": "darkred", "Gynecologist": "pink"}
-    
-    for idx, doctor in filtered_doctors.iterrows():
-        color = colors.get(doctor["type"], "gray")
+
+    # Doctor/hospital markers
+    type_colors = {
+        "hospital": "red", "clinic": "green", "doctors": "darkgreen",
+        "pharmacy": "orange", "health centre": "purple"
+    }
+    for doc in real_doctors:
+        color = type_colors.get(doc["type"].lower(), "gray")
+        popup_html = f"""
+        <b>{doc['name']}</b><br>
+        🏥 {doc['type']}<br>
+        📞 {doc['phone']}<br>
+        📍 {doc['address']}<br>
+        🕐 {doc['opening_hours']}<br>
+        <b>📏 {doc['distance_km']} km away</b>
+        """
         folium.Marker(
-            location=[doctor["lat"], doctor["lon"]],
-            popup=f"<b>{doctor['name']}</b><br>{doctor['type']}<br>Distance: {doctor['distance_km']:.2f} km<br>Phone: {doctor['phone']}",
-            icon=folium.Icon(color=color, icon="hospital", prefix="fa"),
-            tooltip=f"{doctor['name']} ({doctor['distance_km']:.2f} km)"
+            location=[doc["lat"], doc["lon"]],
+            popup=folium.Popup(popup_html, max_width=280),
+            icon=folium.Icon(color=color, icon="plus-sign"),
+            tooltip=f"{doc['name']} ({doc['distance_km']} km)"
         ).add_to(m)
-    
+
     st_folium(m, width=1200, height=500)
     st.markdown('</div>', unsafe_allow_html=True)
-    
+
+    # ── Results table ──────────────────────────────────────────────────────
     st.divider()
-    
-    # Display nearby doctors in table format
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader(f"👨‍⚕️ Nearby Healthcare Providers ({len(filtered_doctors)} found)")
-    
-    if len(filtered_doctors) > 0:
-        display_df = filtered_doctors[["name", "type", "distance_km", "phone", "address"]].copy()
-        display_df["distance_km"] = display_df["distance_km"].round(2)
-        display_df.columns = ["Name", "Type", "Distance (km)", "Phone", "Address"]
-        
+    if real_doctors:
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader(f"👨‍⚕️ Found {len(real_doctors)} Healthcare Providers (sorted by distance)")
+
+        # Nearest one highlighted
+        nearest = real_doctors[0]
+        st.success(f"🏆 Nearest: **{nearest['name']}** — {nearest['type']} — {nearest['distance_km']} km away | 📞 {nearest['phone']}")
+
+        display_df = pd.DataFrame(real_doctors)[["name", "type", "distance_km", "phone", "address", "opening_hours"]]
+        display_df.columns = ["Name", "Type", "Distance (km)", "Phone", "Address", "Opening Hours"]
         st.dataframe(display_df, use_container_width=True)
-        
-        # Recommend doctor based on diagnosis
+
+        # Diagnosis-based recommendation using SpecialtyMatcher
         st.divider()
-        st.subheader("💡 Doctor Recommendation Based on Diagnosis")
-        
-        diagnosis_to_specialist = {
-            "Common Cold": "General Practitioner",
-            "Viral Fever": "General Practitioner",
-            "Pneumonia": "General Practitioner",
-            "Flu": "General Practitioner",
-            "Food Poisoning": "General Practitioner",
-            "Dengue (Mild)": "General Practitioner",
-            "Bronchitis": "General Practitioner",
-            "Fatigue": "General Practitioner",
-            "Throat Infection": "General Practitioner"
-        }
-        
-        selected_diagnosis = st.selectbox("Select your diagnosis", list(diagnosis_to_specialist.keys()))
-        specialist_type = diagnosis_to_specialist[selected_diagnosis]
-        
-        specialist_doctors = filtered_doctors[filtered_doctors["type"] == specialist_type].sort_values("distance_km")
-        
-        if len(specialist_doctors) > 0:
-            st.success(f"✅ **Recommended Specialists for {selected_diagnosis}:**")
-            for idx, doctor in specialist_doctors.head(3).iterrows():
-                st.info(f"""
-                **{doctor['name']}**
-                - Type: {doctor['type']}
-                - Distance: {doctor['distance_km']:.2f} km away
-                - Phone: {doctor['phone']}
-                - Address: {doctor['address']}
-                """)
-        else:
-            st.warning(f"⚠️ No {specialist_type} found within {max_distance} km. Try increasing the search distance.")
-    else:
-        st.warning(f"⚠️ No healthcare providers found within {max_distance} km. Try increasing the search distance.")
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.subheader("💡 Recommend by Diagnosis")
+        selected_diagnosis = st.selectbox("Select your diagnosis", list(medicine_mapping.keys()), key="diag_recommend")
+        recommended_specialties = SpecialtyMatcher.get_matching_specialties(selected_diagnosis)
+        st.info(f"Recommended specialties for **{selected_diagnosis}**: {', '.join(recommended_specialties)}")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    elif "real_doctors_result" in st.session_state:
+        st.warning("⚠️ No healthcare providers found in this area. Try increasing the radius.")
 
 # ===== TAB 8: Medicine Guide =====
-with tab7:
+with tab8:
     st.header("💉 Medicine & Treatment Guide")
     st.markdown('<div class="card">Complete reference guide for medicines suggested by the AI model.</div>', unsafe_allow_html=True)
     
