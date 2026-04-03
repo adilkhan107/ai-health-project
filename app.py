@@ -328,155 +328,163 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
 
 # ===== TAB 1: Single Prediction =====
 with tab1:
-    st.header("💊 Predict Diagnosis for a Single Patient")
-    st.markdown('<div class="card">Enter patient details below to get a diagnosis prediction and medicine recommendation.</div>', unsafe_allow_html=True)
-    
+    st.header("💊 Patient Diagnosis & Medicine Predictor")
+    st.markdown('<div class="card">Enter patient details to get diagnosis, medicines, dosage, precautions and care plan.</div>', unsafe_allow_html=True)
+
+    # detailed medicine database
+    medicine_detail_db = {
+        "Common Cold":      {"medicine": "Paracetamol, Cetirizine, Nasal drops",  "dosage": "Paracetamol 500mg every 6-8 hrs",  "duration": "3-7 days",  "precaution": "Stay hydrated, avoid cold air, rest",          "severity": "Low",    "specialist": "General Practitioner"},
+        "Viral Fever":      {"medicine": "Paracetamol, Vitamin C, ORS",           "dosage": "Paracetamol 500mg every 6 hrs",    "duration": "5-7 days",  "precaution": "Complete bed rest, warm fluids",               "severity": "Medium", "specialist": "General Practitioner"},
+        "Pneumonia":        {"medicine": "Antibiotics (Amoxicillin), Steam",       "dosage": "As prescribed by doctor",          "duration": "10-14 days","precaution": "Complete antibiotic course, chest physio",     "severity": "High",   "specialist": "Pulmonologist"},
+        "Flu":              {"medicine": "Oseltamivir, Paracetamol, Vitamin C",    "dosage": "Oseltamivir 75mg twice daily",     "duration": "7-10 days", "precaution": "Isolation, vaccination recommended",           "severity": "Medium", "specialist": "General Practitioner"},
+        "Food Poisoning":   {"medicine": "ORS, Metronidazole, Bland diet",         "dosage": "ORS every 30-60 mins",             "duration": "2-4 days",  "precaution": "Hydration essential, avoid oily food",         "severity": "Medium", "specialist": "Gastroenterologist"},
+        "Dengue (Mild)":    {"medicine": "Paracetamol, ORS, Rest",                 "dosage": "Paracetamol 500mg every 6 hrs",    "duration": "5-7 days",  "precaution": "Avoid NSAIDs, maintain platelet count",        "severity": "High",   "specialist": "Infectious Disease"},
+        "Bronchitis":       {"medicine": "Amoxicillin, Salbutamol inhaler, Steam", "dosage": "Amoxicillin 500mg 3x daily",       "duration": "7-14 days", "precaution": "Avoid smoke, use humidifier",                  "severity": "Medium", "specialist": "Pulmonologist"},
+        "Fatigue":          {"medicine": "Iron supplements, Vitamin B12, Rest",    "dosage": "Iron 65mg daily with Vitamin C",   "duration": "2-4 weeks", "precaution": "Adequate sleep, balanced diet",                "severity": "Low",    "specialist": "General Practitioner"},
+        "Throat Infection": {"medicine": "Amoxicillin, Throat lozenges, Gargle",   "dosage": "Amoxicillin 250mg 3x daily",       "duration": "5-7 days",  "precaution": "Avoid spicy food, warm liquids",               "severity": "Low",    "specialist": "ENT Specialist"},
+    }
+
     col1, col2 = st.columns(2)
-    
     with col1:
         st.subheader("👤 Patient Information")
-        age = st.number_input("Age", min_value=0, max_value=120, value=30)
-        gender = st.selectbox("Gender", ["Male", "Female"])
+        p_name      = st.text_input("Patient Name", value="", placeholder="Optional")
+        age         = st.number_input("Age", min_value=0, max_value=120, value=30)
+        gender      = st.selectbox("Gender", ["Male", "Female"])
         temperature = st.number_input("🌡️ Temperature (°C)", min_value=30.0, max_value=45.0, value=36.5, step=0.1)
-        heart_rate = st.number_input("❤️ Heart Rate (bpm)", min_value=40, max_value=200, value=70)
-    
+        heart_rate  = st.number_input("❤️ Heart Rate (bpm)", min_value=40, max_value=200, value=70)
+
     with col2:
         st.subheader("📋 Medical Details")
         blood_pressure = st.selectbox("🩸 Blood Pressure", ["Normal", "High", "Low"])
-        symptoms = st.selectbox("🤒 Symptoms", ["Cough", "Fever", "Fatigue", "Headache", "Nausea", "Other"])  
-        # Medicine_Advice is not passed to the model because it was not used during training.
-    if st.button("🔍 Predict Diagnosis", key="predict_btn"):
+        symptoms       = st.selectbox("🤒 Primary Symptom", ["Cough", "Fever", "Fatigue", "Headache", "Nausea", "Other"])
+        weight         = st.number_input("⚖️ Weight (kg)", min_value=1, max_value=200, value=60)
+        allergies      = st.text_input("⚠️ Known Allergies", placeholder="e.g. Penicillin, Aspirin")
+    if st.button("🔍 Predict Diagnosis & Medicine", key="predict_btn"):
         with st.spinner("🔄 Analyzing patient data..."):
             try:
-                input_data = pd.DataFrame({
-                    'Patient_ID': [0],
-                    'Age': [age],
-                    'Gender': [gender],
-                    'Temperature': [temperature],
-                    'Heart_Rate': [heart_rate],
-                    'Blood_Pressure': [blood_pressure],
-                    'Symptoms': [symptoms]
-                })
+                numeric_cols_t = TRAIN_INFO.get('numeric_cols', ['Age', 'Temperature', 'Heart_Rate'])
+                cat_cols_t     = TRAIN_INFO.get('categorical_cols', ['Gender', 'Blood_Pressure', 'Symptoms'])
+                feature_order  = TRAIN_INFO.get('feature_columns', numeric_cols_t + cat_cols_t)
 
-                # Ensure the raw features are in the same order as training
-                if RAW_FEATURE_COLUMNS:
-                    # Build the expected feature columns including Patient_ID
-                    expected_features = ['Patient_ID'] + [c for c in RAW_FEATURE_COLUMNS if c != 'Patient_ID']
-                    missing = [c for c in expected_features if c not in input_data.columns]
-                    if missing:
-                        raise ValueError(f"Missing features required by model: {missing}")
-                    input_data = input_data[expected_features]
+                raw = {'Patient_ID': 0, 'Age': age, 'Temperature': temperature, 'Heart_Rate': heart_rate,
+                       'Gender': gender, 'Blood_Pressure': blood_pressure, 'Symptoms': symptoms}
+                # use all columns the preprocessor knows about
+                all_prep_cols = ['Patient_ID', 'Age', 'Temperature', 'Heart_Rate', 'Gender', 'Blood_Pressure', 'Symptoms']
+                input_data = pd.DataFrame([raw])[all_prep_cols]
 
-                # Ensure Patient_ID is numeric
-                input_data['Patient_ID'] = pd.to_numeric(input_data['Patient_ID'], errors='coerce').fillna(0).astype(int)
-
-                # Apply label encoders (from training) to categorical columns ONLY
                 cat_encoders = pipeline.get('cat_encoders', {}) or {}
                 for col, le in cat_encoders.items():
                     if col in input_data.columns:
-                        vals = input_data[col].astype(str).fillna("nan_missing")
+                        val = str(input_data.at[0, col])
                         mapping = {c: i for i, c in enumerate(le.classes_)}
-                        input_data[col] = vals.map(mapping).fillna(mapping.get("nan_missing", -1)).astype(int)
+                        input_data[col] = mapping.get(val, -1)
 
-                # Apply preprocessing from training (scaling, imputation)
                 preprocessor = pipeline.get('preprocessor')
                 if preprocessor is None:
-                    raise ValueError("Model preprocessor not found in saved pipeline.")
+                    raise ValueError("Model preprocessor not found.")
 
-                processed = preprocessor.transform(input_data)
-                processed_df = pd.DataFrame(processed, columns=FEATURE_COLUMNS)
+                processed    = preprocessor.transform(input_data)
+                proc_cols    = FEATURE_COLUMNS if FEATURE_COLUMNS else feature_order
+                processed_df = pd.DataFrame(processed, columns=proc_cols)
 
-                prediction = pipeline['pipeline'].predict(processed_df)[0]
+                raw_pred = pipeline['pipeline'].predict(processed_df)[0]
 
-                st.success(f"✅ **ML Predicted Diagnosis: {prediction}**")
+                # decode numeric label → disease name
+                target_enc = pipeline.get('target_encoder')
+                if target_enc is not None and not isinstance(raw_pred, str):
+                    prediction = target_enc.inverse_transform([int(raw_pred)])[0]
+                else:
+                    prediction = str(raw_pred)
 
-                # Show medicine advice
-                advice = medicine_mapping.get(prediction, "Consult a doctor for personalized advice.")
-                st.info(f"💊 **Suggested Medicine/Advice:** {advice}")
+                # confidence probabilities
+                proba = None
+                if hasattr(pipeline['pipeline'], 'predict_proba'):
+                    try:
+                        proba = pipeline['pipeline'].predict_proba(processed_df)[0]
+                    except Exception:
+                        proba = None
 
-                # ===== OPENAI PREDICTION OPTION =====
-                st.markdown("---")
-                col1, col2 = st.columns(2)
+                # ── display results ──────────────────────────────────────
+                st.divider()
+                details = medicine_detail_db.get(prediction, {})
+                severity_icon = {"Low": "🟢", "Medium": "🟡", "High": "🔴"}.get(details.get("severity", "Low"), "🟡")
+                st.success(f"✅ Predicted Diagnosis: **{prediction}** {severity_icon}")
 
-                with col1:
-                    if st.button("🤖 Get OpenAI Prediction", key="openai_predict_btn"):
-                        # Prepare patient data for OpenAI
-                        patient_data = {
-                            'name': 'Anonymous Patient',
-                            'age': age,
-                            'gender': gender,
-                            'temperature': temperature,
-                            'heart_rate': heart_rate,
-                            'blood_pressure': blood_pressure,
-                            'symptoms': symptoms,
-                            'location': 'Rural India'
-                        }
+                if p_name:
+                    st.markdown(f"**Patient:** {p_name} | Age: {age} | Gender: {gender}")
 
-                        with st.spinner("🤖 OpenAI analyzing patient data..."):
-                            ai_prediction = ai_advisor.predict_diagnosis(patient_data)
+                # vitals
+                c1, c2, c3 = st.columns(3)
+                temp_status = "🔴 High" if temperature > 37.5 else ("🟢 Normal" if temperature >= 36.0 else "🔵 Low")
+                hr_status   = "🔴 High" if heart_rate > 100 else ("🟢 Normal" if heart_rate >= 60 else "🔵 Low")
+                bp_status   = {"Normal": "🟢 Normal", "High": "🔴 High", "Low": "🔵 Low"}.get(blood_pressure, blood_pressure)
+                c1.metric("🌡️ Temperature", f"{temperature}°C", temp_status)
+                c2.metric("❤️ Heart Rate",  f"{heart_rate} bpm", hr_status)
+                c3.metric("🩸 Blood Pressure", blood_pressure, bp_status)
 
-                        if ai_prediction['confidence'] > 0:
-                            st.success(f"🤖 **AI Predicted Diagnosis: {ai_prediction['diagnosis']}**")
-                            st.info(f"🎯 **AI Confidence: {ai_prediction['confidence']*100:.1f}%**")
+                # confidence chart — use pipeline's own classes to avoid length mismatch
+                if proba is not None and target_enc is not None:
+                    try:
+                        pipe_classes = pipeline['pipeline'].classes_
+                        chart_labels = target_enc.inverse_transform([int(c) for c in pipe_classes])
+                        conf_df = pd.DataFrame({"Diagnosis": chart_labels, "Confidence": proba}).sort_values("Confidence", ascending=False).head(5)
+                        fig = px.bar(conf_df, x="Confidence", y="Diagnosis", orientation="h",
+                                     color="Confidence", color_continuous_scale="Blues",
+                                     title="Top Diagnosis Probabilities")
+                        fig.update_layout(height=260, margin=dict(t=30, b=0))
+                        st.plotly_chart(fig, use_container_width=True)
+                    except Exception:
+                        pass  # chart is optional, skip silently
 
-                            # Show AI reasoning
-                            with st.expander("📋 AI Reasoning"):
-                                st.write(ai_prediction['reasoning'])
+                # medicine details
+                st.divider()
+                if details:
+                    st.subheader("💊 Medicine & Treatment Plan")
+                    m1, m2 = st.columns(2)
+                    with m1:
+                        st.markdown(f"**💊 Medicines:** {details['medicine']}")
+                        st.markdown(f"**⏰ Dosage:** {details['dosage']}")
+                        st.markdown(f"**� Duration:** {details['duration']}")
+                    with m2:
+                        st.markdown(f"**⚠️ Precautions:** {details['precaution']}")
+                        st.markdown(f"**👨‍⚕️ See a:** {details['specialist']}")
+                        if allergies:
+                            st.warning(f"⚠️ Patient allergic to **{allergies}** — verify medicines with doctor.")
+                    paracetamol_dose = min(round(weight * 15), 1000)
+                    st.info(f"💉 Weight-based Paracetamol dose for {weight}kg: **{paracetamol_dose}mg** per dose (max 4g/day)")
+                else:
+                    st.info(f"💊 {medicine_mapping.get(prediction, 'Consult a doctor for personalized advice.')}")
 
-                            # Show differential diagnoses
-                            if ai_prediction.get('differential_diagnoses'):
-                                st.subheader("🔍 Alternative Possibilities:")
-                                for alt_diag in ai_prediction['differential_diagnoses'][:3]:
-                                    st.write(f"• {alt_diag}")
-                        else:
-                            st.error(f"❌ AI Prediction failed: {ai_prediction['reasoning']}")
+                # care instructions
+                st.divider()
+                st.subheader("📋 Patient Care Instructions")
+                urgency = details.get("severity", "Low")
+                if urgency == "High":
+                    st.error("🚨 HIGH SEVERITY — Visit a hospital immediately.")
+                elif urgency == "Medium":
+                    st.warning("⚠️ MEDIUM SEVERITY — Consult a doctor within 24 hours.")
+                else:
+                    st.success("✅ LOW SEVERITY — Home care with rest and medicines should help.")
 
-                with col2:
-                    # AI-Enhanced Advice Option
-                    if st.button("🧠 Get AI-Enhanced Advice", key="ai_enhance_btn"):
-                        st.markdown('<div class="card">', unsafe_allow_html=True)
-                        st.subheader("🤖 AI-Enhanced Analysis")
+                st.markdown("""
+- 🛏️ Rest adequately, avoid strenuous activity
+- 💧 Stay well hydrated (8-10 glasses of water/day)
+- 🌡️ Monitor temperature every 4-6 hours
+- 📞 Call emergency if symptoms worsen suddenly
+- 🔁 Follow up with doctor after completing medicine course
+                """)
 
-                        # Prepare patient data for AI analysis
-                        patient_data = {
-                            'name': 'Anonymous Patient',
-                            'age': age,
-                            'gender': gender,
-                            'temperature': temperature,
-                            'heart_rate': heart_rate,
-                            'blood_pressure': blood_pressure,
-                            'symptoms': symptoms,
-                            'location': 'Rural India'
-                        }
-
-                        # Get AI analysis
-                        with st.spinner("🤖 AI analyzing patient data..."):
-                            ai_analysis = ai_advisor.analyze_patient_data(patient_data)
-
-                        if 'error' not in ai_analysis:
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                st.metric("AI Diagnosis", ai_analysis['diagnosis'])
-                                st.metric("Urgency", ai_analysis['urgency_level'])
-
-                            with col2:
-                                st.metric("Doctor Specialty", ai_analysis['doctor_suggestion'])
-
-                            st.subheader("💊 AI Medicine Recommendations")
-                            st.info(ai_analysis['medicine_advice'])
-
-                            st.subheader("📋 AI Additional Advice")
-                            st.write(ai_analysis['additional_advice'])
-
-                            st.subheader("📅 AI Follow-up Recommendation")
-                            st.write(ai_analysis['follow_up'])
-                        else:
-                            st.warning(f"⚠️ AI Analysis unavailable: {ai_analysis.get('error', 'Unknown error')}")
-
-                        st.markdown('</div>', unsafe_allow_html=True)
+                st.session_state['last_prediction'] = prediction
+                st.session_state['last_patient'] = {
+                    'name': p_name, 'age': age, 'gender': gender,
+                    'temperature': temperature, 'heart_rate': heart_rate,
+                    'blood_pressure': blood_pressure, 'symptoms': symptoms
+                }
 
             except Exception as e:
                 st.error(f"❌ Prediction failed: {e}")
+                import traceback
+                st.code(traceback.format_exc())
 
 # ===== TAB 2: Batch Prediction =====
 with tab2:
@@ -496,40 +504,26 @@ with tab2:
             with st.spinner("🔄 Processing batch predictions..."):
                 try:
                     required_cols = ['Age', 'Gender', 'Temperature', 'Heart_Rate', 'Blood_Pressure', 'Symptoms']
-                    # Patient_ID is optional for batch prediction but will be included if present
                     missing_cols = [col for col in required_cols if col not in df.columns]
 
                     if missing_cols:
                         st.error(f"❌ Missing columns: {', '.join(missing_cols)}")
                     else:
-                        # Add Patient_ID if not present (for compatibility with model)
+                        # Preprocessor needs Patient_ID — add it if missing
                         if 'Patient_ID' not in df.columns:
                             df['Patient_ID'] = range(1, len(df) + 1)
-                        
-                        # Ensure Patient_ID is numeric
-                        df['Patient_ID'] = pd.to_numeric(df['Patient_ID'], errors='coerce').fillna(range(1, len(df) + 1)).astype(int)
-                        
-                        # Ensure correct feature order if available
-                        # Ensure raw features match what the preprocessor expects
-                        if RAW_FEATURE_COLUMNS:
-                            # Build the expected feature columns including Patient_ID
-                            expected_features = ['Patient_ID'] + [c for c in RAW_FEATURE_COLUMNS if c != 'Patient_ID']
-                            missing = [c for c in expected_features if c not in df.columns]
-                            if missing:
-                                st.error(f"❌ Missing features required by model: {', '.join(missing)}")
-                                st.stop()
-                            # Include Patient_ID for preprocessing 
-                            df_raw = df[expected_features].copy()
-                        else:
-                            df_raw = df[required_cols].copy()
+                        df['Patient_ID'] = pd.to_numeric(df['Patient_ID'], errors='coerce').fillna(0).astype(int)
 
-                        # Apply label encoders (from training) to categorical columns ONLY
+                        all_prep_cols = ['Patient_ID', 'Age', 'Temperature', 'Heart_Rate', 'Gender', 'Blood_Pressure', 'Symptoms']
+                        df_raw = df[[c for c in all_prep_cols if c in df.columns]].copy()
+
+                        # Apply label encoders to categorical columns
                         cat_encoders = pipeline.get('cat_encoders', {}) or {}
                         for col, le in cat_encoders.items():
                             if col in df_raw.columns:
-                                vals = df_raw[col].astype(str).fillna("nan_missing")
+                                vals = df_raw[col].astype(str)
                                 mapping = {c: i for i, c in enumerate(le.classes_)}
-                                df_raw[col] = vals.map(mapping).fillna(mapping.get("nan_missing", -1)).astype(int)
+                                df_raw[col] = vals.map(mapping).fillna(-1).astype(int)
 
                         preprocessor = pipeline.get('preprocessor')
                         if preprocessor is None:
@@ -537,17 +531,26 @@ with tab2:
                             st.stop()
 
                         processed = preprocessor.transform(df_raw)
-                        # Use all feature columns from the preprocessor output
-                        df_processed = pd.DataFrame(processed, columns=FEATURE_COLUMNS)
+                        proc_cols = FEATURE_COLUMNS if FEATURE_COLUMNS else all_prep_cols
+                        df_processed = pd.DataFrame(processed, columns=proc_cols)
 
-                        predictions = pipeline['pipeline'].predict(df_processed)
+                        raw_preds = pipeline['pipeline'].predict(df_processed)
+
+                        # decode numeric labels → disease names
+                        target_enc = pipeline.get('target_encoder')
+                        if target_enc is not None and not isinstance(raw_preds[0], str):
+                            predictions = target_enc.inverse_transform([int(p) for p in raw_preds])
+                        else:
+                            predictions = raw_preds
+
                         df['Predicted_Diagnosis'] = predictions
                         df['Suggested_Medicine'] = df['Predicted_Diagnosis'].map(medicine_mapping).fillna("Consult a doctor")
 
                         st.success("✅ Predictions completed!")
                         st.markdown('<div class="card">', unsafe_allow_html=True)
                         st.subheader("📊 Prediction Results")
-                        st.dataframe(df[['Patient_ID', 'Age', 'Predicted_Diagnosis', 'Suggested_Medicine']], use_container_width=True)
+                        show_cols = [c for c in ['Patient_ID', 'Age', 'Predicted_Diagnosis', 'Suggested_Medicine'] if c in df.columns]
+                        st.dataframe(df[show_cols], use_container_width=True)
                         st.markdown('</div>', unsafe_allow_html=True)
 
                         # Download results
@@ -988,6 +991,24 @@ with tab7:
 
     if gps_lat and gps_lon:
         st.success(f"✅ Real location detected: {gps_lat:.5f}, {gps_lon:.5f}")
+        # show live location map immediately
+        st.subheader("📍 Your Current Location")
+        live_map = folium.Map(location=[gps_lat, gps_lon], zoom_start=15, tiles="OpenStreetMap")
+        folium.Marker(
+            location=[gps_lat, gps_lon],
+            popup="📌 You are here",
+            icon=folium.Icon(color="blue", icon="home"),
+            tooltip="Your Real Location"
+        ).add_to(live_map)
+        folium.Circle(
+            location=[gps_lat, gps_lon],
+            radius=500,
+            color="#1976d2",
+            fill=True,
+            fill_opacity=0.15,
+            tooltip="~500m radius"
+        ).add_to(live_map)
+        st_folium(live_map, width=1200, height=350)
 
     # ── Manual input (fallback) ────────────────────────────────────────────
     col1, col2 = st.columns([2, 1])
