@@ -634,7 +634,7 @@ with tab1:
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("👤 Patient Information")
-        p_name      = st.text_input("Patient Name", value="", placeholder="Optional")
+        p_name      = st.text_input("Patient Name *", value="", placeholder="Required - e.g. John Doe")
         age         = st.number_input("Age", min_value=0, max_value=120, value=30)
         gender      = st.selectbox("Gender", ["Male", "Female"])
         temperature = st.number_input("🌡️ Temperature (°C)", min_value=30.0, max_value=45.0, value=36.5, step=0.1)
@@ -672,6 +672,13 @@ with tab1:
     if not MODEL_AVAILABLE:
         st.warning("Single prediction is disabled because the model file is unavailable.")
     elif st.button("🔍 Predict Diagnosis & Medicine", key="predict_btn"):
+        if not p_name.strip():
+            st.error("⚠️ Patient Name is compulsory. Please enter a valid name before predicting.")
+            st.stop()
+        if not symptoms.strip():
+            st.error("⚠️ Symptoms are compulsory. Please enter at least one symptom before predicting.")
+            st.stop()
+            
         with st.spinner("🔄 Analyzing patient data..."):
             try:
                 feature_order    = pipeline.get('feature_columns', TRAIN_INFO.get('feature_columns', []))
@@ -847,32 +854,309 @@ with tab1:
                 import traceback
                 st.code(traceback.format_exc())
 
-# ===== TAB 2: Voice Input =====
+# ===== TAB 2: Voice Input (Full Pipeline) =====
 with tab2:
-    st.header("🎤 Voice Input Diagnosis")
-    st.markdown('<div class="card">Speak your symptoms in Hindi or English for instant diagnosis.</div>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([1, 2])
-    with col1:
+    st.header("🎤 Voice-to-Diagnosis Pipeline")
+    st.markdown("""
+<div class="card">
+    <strong>🔊 Complete Voice Diagnosis</strong> — Speak your symptoms in Hindi or English.<br>
+    The AI will <em>extract symptoms → run diagnosis → recommend medicine → speak the result</em> back to you.
+</div>
+""", unsafe_allow_html=True)
+
+    # ── Patient info row ──────────────────────────────────────────────────
+    st.subheader("👤 Patient Details")
+    v_col1, v_col2, v_col3, v_col4 = st.columns(4)
+    with v_col1:
+        v_name = st.text_input("Name *", value="", placeholder="Required", key="voice_p_name")
+    with v_col2:
+        v_age = st.number_input("Age", min_value=0, max_value=120, value=30, key="voice_p_age")
+    with v_col3:
+        v_gender = st.selectbox("Gender", ["Male", "Female"], key="voice_p_gender")
+    with v_col4:
+        v_temp = st.number_input("Temperature (°C)", min_value=30.0, max_value=45.0, value=36.5, step=0.1, key="voice_p_temp")
+
+    v_col5, v_col6 = st.columns(2)
+    with v_col5:
+        v_hr = st.number_input("Heart Rate (bpm)", min_value=40, max_value=200, value=70, key="voice_p_hr")
+    with v_col6:
+        v_bp = st.selectbox("Blood Pressure", ["Normal", "High", "Low"], key="voice_p_bp")
+
+    st.divider()
+
+    # ── Language + Recording ──────────────────────────────────────────────
+    rec_col1, rec_col2 = st.columns([1, 2])
+    with rec_col1:
         st.subheader("🗣️ Language")
         voice_language = st.radio("Choose language:", ["हिन्दी (Hindi)", "English"], key="voice_language")
         lang_code = "hi-IN" if "Hindi" in voice_language else "en-IN"
-    
-    with col2:
+        speak_result = st.checkbox("🔊 Speak diagnosis aloud", value=True, key="voice_speak_result")
+
+    with rec_col2:
         st.subheader("🎙️ Voice Recording")
         if st.button("🔴 Start Recording", key="start_voice_record"):
-            st.info("🎤 Listening... Speak your symptoms clearly (up to 10 seconds)")
+            st.info("🎤 Listening… Speak your symptoms clearly (up to 10 seconds)")
             try:
                 transcript = voice.record_audio(language=lang_code, timeout=10)
                 if transcript:
-                    st.success(f"✅ Recorded: {transcript}")
                     st.session_state.voice_transcript = transcript
-                    
-                    # Store in session for further use
-                    st.info("💡 Transcript saved. You can use this in Single Prediction tab for detailed diagnosis.")
+                    st.session_state.voice_diagnosed = False
+                else:
+                    st.warning("Could not capture audio. Please try again.")
             except Exception as e:
                 st.error(f"Error during voice recording: {e}")
                 st.info("💡 Make sure your microphone is connected and working properly.")
+
+        # Also allow typed input as fallback
+        typed_symptoms = st.text_area(
+            "Or type your symptoms here:",
+            value=st.session_state.get("voice_transcript", ""),
+            placeholder="e.g. I have fever and cough since 2 days",
+            height=80,
+            key="voice_typed_symptoms"
+        )
+        if typed_symptoms and typed_symptoms != st.session_state.get("voice_transcript", ""):
+            st.session_state.voice_transcript = typed_symptoms
+
+    # ── Process: Extract → Diagnose → Speak ───────────────────────────────
+    transcript_text = st.session_state.get("voice_transcript", "")
+
+    if transcript_text:
+        st.divider()
+        st.markdown(f"""
+<div class="card">
+    <strong>📝 Captured Input:</strong> <em>"{transcript_text}"</em>
+</div>
+""", unsafe_allow_html=True)
+
+        # Step 1 — Symptom extraction
+        detected_keywords = SymptomExtractor.extract_all(transcript_text)
+        display_names = SymptomExtractor.display_symptoms(transcript_text)
+        symptom_string = SymptomExtractor.symptom_text(transcript_text)
+
+        if display_names:
+            chips_html = " ".join(
+                f'<code style="background:rgba(0,255,200,0.08);border:1px solid rgba(0,255,200,0.2);'
+                f'border-radius:6px;padding:3px 10px;font-size:0.82rem;color:#00ffc8;margin:2px;">{s}</code>'
+                for s in display_names
+            )
+            st.markdown(f"""
+<div style="margin:8px 0 16px;">
+    <span style="font-size:0.8rem;color:#64748b;font-weight:600;">DETECTED SYMPTOMS:</span><br>
+    {chips_html}
+</div>
+""", unsafe_allow_html=True)
+        else:
+            st.info("ℹ️ No specific symptoms detected from keywords — the full text will be used for analysis.")
+
+        # Step 2 — Run ML diagnosis
+        if st.button("⚡ Diagnose from Voice Input", key="voice_diagnose_btn", type="primary"):
+            if not v_name.strip():
+                st.error("⚠️ Patient Name is compulsory. Please enter a valid name before diagnosing.")
+            elif not symptom_string.strip() and not transcript_text.strip():
+                st.error("⚠️ Symptoms are compulsory. Please provide voice input or type your symptoms.")
+            elif not MODEL_AVAILABLE:
+                st.error("⚠️ Trained model is not available. Please check the model file.")
+            else:
+                with st.spinner("🔄 Analyzing symptoms and running diagnosis…"):
+                    try:
+                        feature_order    = pipeline.get('feature_columns', TRAIN_INFO.get('feature_columns', []))
+                        symptom_keywords = pipeline.get('symptom_keywords', TRAIN_INFO.get('symptom_keywords', {}))
+                        symptom_flags    = pipeline.get('symptom_flags', TRAIN_INFO.get('symptom_flags', []))
+                        bp_mapping       = pipeline.get('bp_map', {'Low': 0, 'Normal': 1, 'High': 2})
+
+                        symptoms_lower = symptom_string.lower().replace(',', ' ')
+
+                        # Symptom_Score
+                        symptom_score = sum(v for k, v in symptom_keywords.items() if k in symptoms_lower)
+                        if symptoms_lower.strip() and symptom_score == 0:
+                            symptom_score = 1
+
+                        gender_encoded = 0 if v_gender == 'Male' else 1
+                        bp_encoded     = bp_mapping.get(v_bp, 1)
+
+                        raw = {
+                            'Age':           float(v_age),
+                            'Gender_enc':    float(gender_encoded),
+                            'Temperature':   float(v_temp),
+                            'Heart_Rate':    float(v_hr),
+                            'BP_enc':        float(bp_encoded),
+                            'Symptom_Score': float(symptom_score),
+                        }
+                        for flag in symptom_flags:
+                            raw[f'sym_{flag}'] = 1 if flag in symptoms_lower else 0
+
+                        input_data = pd.DataFrame([raw])[feature_order]
+
+                        # Preprocessor
+                        preprocessor = pipeline.get('preprocessor')
+                        if preprocessor is not None:
+                            try:
+                                processed = preprocessor.transform(input_data)
+                                if hasattr(processed, 'toarray'):
+                                    processed = processed.toarray()
+                                processed_df = pd.DataFrame(processed, columns=feature_order)
+                            except Exception:
+                                processed_df = input_data
+                        else:
+                            processed_df = input_data
+
+                        # Predict
+                        raw_pred = pipeline['pipeline'].predict(processed_df)[0]
+
+                        target_enc = pipeline.get('target_encoder')
+                        if target_enc is not None and not isinstance(raw_pred, str):
+                            prediction = target_enc.inverse_transform([int(raw_pred)])[0]
+                        else:
+                            prediction = str(raw_pred)
+
+                        # Confidence
+                        proba = None
+                        if hasattr(pipeline['pipeline'], 'predict_proba'):
+                            try:
+                                proba = pipeline['pipeline'].predict_proba(processed_df)[0]
+                            except Exception:
+                                proba = None
+
+                        # ── Display Results ─────────────────────────────────
+                        st.divider()
+
+                        # Medicine detail lookup
+                        medicine_detail_db_voice = {
+                            "Common Cold":      {"medicine": "Paracetamol, Cetirizine, Nasal drops",  "dosage": "Paracetamol 500mg every 6-8 hrs",  "duration": "3-7 days",  "precaution": "Stay hydrated, avoid cold air, rest",          "severity": "Low",    "specialist": "General Practitioner"},
+                            "Viral Fever":      {"medicine": "Paracetamol, Vitamin C, ORS",           "dosage": "Paracetamol 500mg every 6 hrs",    "duration": "5-7 days",  "precaution": "Complete bed rest, warm fluids",               "severity": "Medium", "specialist": "General Practitioner"},
+                            "Pneumonia":        {"medicine": "Antibiotics (Amoxicillin), Steam",       "dosage": "As prescribed by doctor",          "duration": "10-14 days","precaution": "Complete antibiotic course, chest physio",     "severity": "High",   "specialist": "Pulmonologist"},
+                            "Flu":              {"medicine": "Oseltamivir, Paracetamol, Vitamin C",    "dosage": "Oseltamivir 75mg twice daily",     "duration": "7-10 days", "precaution": "Isolation, vaccination recommended",           "severity": "Medium", "specialist": "General Practitioner"},
+                            "Food Poisoning":   {"medicine": "ORS, Metronidazole, Bland diet",         "dosage": "ORS every 30-60 mins",             "duration": "2-4 days",  "precaution": "Hydration essential, avoid oily food",         "severity": "Medium", "specialist": "Gastroenterologist"},
+                            "Dengue (Mild)":    {"medicine": "Paracetamol, ORS, Rest",                 "dosage": "Paracetamol 500mg every 6 hrs",    "duration": "5-7 days",  "precaution": "Avoid NSAIDs, maintain platelet count",        "severity": "High",   "specialist": "Infectious Disease"},
+                            "Bronchitis":       {"medicine": "Amoxicillin, Salbutamol inhaler, Steam", "dosage": "Amoxicillin 500mg 3x daily",       "duration": "7-14 days", "precaution": "Avoid smoke, use humidifier",                  "severity": "Medium", "specialist": "Pulmonologist"},
+                            "Fatigue":          {"medicine": "Iron supplements, Vitamin B12, Rest",    "dosage": "Iron 65mg daily with Vitamin C",   "duration": "2-4 weeks", "precaution": "Adequate sleep, balanced diet",                "severity": "Low",    "specialist": "General Practitioner"},
+                            "Throat Infection": {"medicine": "Amoxicillin, Throat lozenges, Gargle",   "dosage": "Amoxicillin 250mg 3x daily",       "duration": "5-7 days",  "precaution": "Avoid spicy food, warm liquids",               "severity": "Low",    "specialist": "ENT Specialist"},
+                        }
+
+                        details = medicine_detail_db_voice.get(prediction, {})
+                        severity = details.get("severity", "Low")
+                        severity_icon = {"Low": "🟢", "Medium": "🟡", "High": "🔴"}.get(severity, "🟡")
+                        badge_class = {"Low": "badge-low", "Medium": "badge-medium", "High": "badge-high"}.get(severity, "badge-medium")
+
+                        st.markdown(f"""
+<div class="card" style="border-top-color: {'#4ade80' if severity == 'Low' else '#fbbf24' if severity == 'Medium' else '#f87171'};">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <span style="font-size:2rem;">{severity_icon}</span>
+        <div>
+            <div style="font-size:1.3rem;font-weight:800;color:#e2e8f0;">Diagnosis: {prediction}</div>
+            <span class="badge {badge_class}">{severity} Severity</span>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+                        if v_name:
+                            st.markdown(f"**Patient:** {v_name} | Age: {v_age} | Gender: {v_gender}")
+
+                        # Vitals
+                        vc1, vc2, vc3 = st.columns(3)
+                        temp_status = "🔴 High" if v_temp > 37.5 else ("🟢 Normal" if v_temp >= 36.0 else "🔵 Low")
+                        hr_status   = "🔴 High" if v_hr > 100 else ("🟢 Normal" if v_hr >= 60 else "🔵 Low")
+                        bp_label    = {"Normal": "🟢 Normal", "High": "🔴 High", "Low": "🔵 Low"}.get(v_bp, v_bp)
+                        vc1.metric("🌡️ Temperature", f"{v_temp}°C", temp_status)
+                        vc2.metric("❤️ Heart Rate",  f"{v_hr} bpm", hr_status)
+                        vc3.metric("🩸 Blood Pressure", v_bp, bp_label)
+
+                        # Confidence chart
+                        if proba is not None and target_enc is not None:
+                            try:
+                                pipe_classes = pipeline['pipeline'].classes_
+                                chart_labels = target_enc.inverse_transform([int(c) for c in pipe_classes])
+                                conf_df = pd.DataFrame({"Diagnosis": chart_labels, "Confidence": proba}).sort_values("Confidence", ascending=False).head(5)
+                                fig = px.bar(conf_df, x="Confidence", y="Diagnosis", orientation="h",
+                                             color="Confidence", color_continuous_scale="Blues",
+                                             title="Top Diagnosis Probabilities")
+                                fig.update_layout(height=260, margin=dict(t=30, b=0))
+                                st.plotly_chart(fig, use_container_width=True)
+                            except Exception:
+                                pass
+
+                        # Medicine plan
+                        st.divider()
+                        if details:
+                            st.subheader("💊 Medicine & Treatment Plan")
+                            m1, m2 = st.columns(2)
+                            with m1:
+                                st.markdown(f"**💊 Medicines:** {details['medicine']}")
+                                st.markdown(f"**⏰ Dosage:** {details['dosage']}")
+                                st.markdown(f"**📅 Duration:** {details['duration']}")
+                            with m2:
+                                st.markdown(f"**⚠️ Precautions:** {details['precaution']}")
+                                st.markdown(f"**👨‍⚕️ See a:** {details['specialist']}")
+                        else:
+                            st.info(f"💊 {medicine_mapping.get(prediction, 'Consult a doctor for personalized advice.')}")
+
+                        # Severity-based care
+                        st.divider()
+                        if severity == "High":
+                            st.error("🚨 HIGH SEVERITY — Visit a hospital immediately.")
+                        elif severity == "Medium":
+                            st.warning("⚠️ MEDIUM SEVERITY — Consult a doctor within 24 hours.")
+                        else:
+                            st.success("✅ LOW SEVERITY — Home care with rest and medicines should help.")
+
+                        # ── Step 3: Voice Output ────────────────────────────
+                        if speak_result:
+                            tts_lang = "hi" if "Hindi" in voice_language else "en"
+                            if tts_lang == "en":
+                                speech_text = (
+                                    f"Diagnosis: {prediction}. "
+                                    f"Severity: {severity}. "
+                                    f"Recommended medicine: {details.get('medicine', medicine_mapping.get(prediction, 'consult a doctor'))}. "
+                                    f"Duration: {details.get('duration', 'as advised')}. "
+                                    f"Precaution: {details.get('precaution', 'rest and stay hydrated')}."
+                                )
+                            else:
+                                speech_text = (
+                                    f"निदान: {prediction}. "
+                                    f"गंभीरता: {severity}. "
+                                    f"दवाई: {details.get('medicine', medicine_mapping.get(prediction, 'डॉक्टर से सलाह लें'))}."
+                                )
+                            try:
+                                voice.text_to_speech(speech_text, language=tts_lang)
+                            except Exception as tts_err:
+                                st.warning(f"🔇 Could not play voice output: {tts_err}")
+
+                        # ── Auto-save to history ────────────────────────────
+                        if v_name.strip():
+                            try:
+                                medicine_prescribed = details.get('medicine', medicine_mapping.get(prediction, ''))
+                                all_patients = db.get_all_patients()
+                                existing = all_patients[
+                                    (all_patients['name'].str.lower() == v_name.strip().lower()) &
+                                    (all_patients['age'] == v_age)
+                                ] if not all_patients.empty else pd.DataFrame()
+
+                                if not existing.empty:
+                                    pid = int(existing.iloc[0]['patient_id'])
+                                else:
+                                    pid = db.add_patient(v_name.strip(), v_age, v_gender)
+
+                                db.add_diagnosis(
+                                    patient_id=pid,
+                                    symptoms=symptom_string,
+                                    diagnosis=prediction,
+                                    temperature=v_temp,
+                                    heart_rate=v_hr,
+                                    blood_pressure=v_bp,
+                                    medicine=medicine_prescribed
+                                )
+                                st.success(f"📋 Visit saved to medical history for **{v_name}** (Patient ID: {pid})")
+                            except Exception as db_err:
+                                st.warning(f"Could not save to history: {db_err}")
+
+                        st.session_state.voice_diagnosed = True
+
+                    except Exception as e:
+                        st.error(f"❌ Diagnosis failed: {e}")
+                        import traceback
+                        st.code(traceback.format_exc())
 
 # ===== TAB 3: Health History =====
 with tab3:
@@ -937,18 +1221,21 @@ with tab3:
     with history_tab2:
         st.subheader("➕ Register New Patient")
         
-        col1, col2 = st.columns(2)
-        with col1:
-            pat_name = st.text_input("Full Name:", key="new_patient_name")
-            pat_age = st.number_input("Age:", min_value=1, max_value=120, key="new_patient_age")
-            pat_gender = st.selectbox("Gender:", ["Male", "Female", "Other"], key="new_patient_gender")
-        
-        with col2:
-            pat_phone = st.text_input("Phone Number:", key="new_patient_phone")
-            pat_email = st.text_input("Email (Optional):", key="new_patient_email")
-            pat_location = st.text_input("Location:", key="new_patient_location")
-        
-        if st.button("✅ Register Patient", key="register_btn"):
+        with st.form("register_patient_form", clear_on_submit=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                pat_name = st.text_input("Full Name:", key="new_patient_name")
+                pat_age = st.number_input("Age:", min_value=1, max_value=120, key="new_patient_age", value=1)
+                pat_gender = st.selectbox("Gender:", ["Male", "Female", "Other"], key="new_patient_gender")
+            
+            with col2:
+                pat_phone = st.text_input("Phone Number:", key="new_patient_phone")
+                pat_email = st.text_input("Email (Optional):", key="new_patient_email")
+                pat_location = st.text_input("Location:", key="new_patient_location")
+            
+            submitted = st.form_submit_button("✅ Register Patient")
+            
+        if submitted:
             if pat_name and pat_age:
                 patient_id = db.add_patient(pat_name, pat_age, pat_gender, pat_phone, pat_email, pat_location)
                 st.success(f"✅ Patient registered! Patient ID: **{patient_id}**")
