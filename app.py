@@ -1336,189 +1336,294 @@ with tab4:
 # ===== TAB 5: Find Nearby Doctors =====
 with tab5:
     import requests as _requests
+    import math
     from streamlit_geolocation import streamlit_geolocation
 
     st.header("🗺️ Find Nearby Doctors & Hospitals")
-    st.markdown('<div class="card">Find real doctors and hospitals near your actual location using live map data.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="card">Find real doctors, hospitals, clinics and pharmacies near your location using live OpenStreetMap data.</div>', unsafe_allow_html=True)
 
-    # ── helper: query Overpass API for real healthcare places ──────────────
+    def _haversine(lat1, lon1, lat2, lon2):
+        R = 6371.0
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        a = (math.sin(dlat / 2)**2 +
+             math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2)
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        return round(R * c, 2)
+
     @st.cache_data(ttl=300, show_spinner=False)
-    def fetch_real_doctors(lat, lon, radius_m=5000):
-        """Fetch real hospitals/clinics/doctors from OpenStreetMap via Overpass API."""
+    def fetch_doctors_osm(lat, lon, radius_m=5000):
+        import math as _m
+        def _hav(la1, lo1, la2, lo2):
+            R = 6371.0
+            dlat = _m.radians(la2-la1); dlon = _m.radians(lo2-lo1)
+            a = _m.sin(dlat/2)**2 + _m.cos(_m.radians(la1))*_m.cos(_m.radians(la2))*_m.sin(dlon/2)**2
+            return round(R*2*_m.atan2(_m.sqrt(a), _m.sqrt(1-a)), 2)
+
         overpass_url = "https://overpass-api.de/api/interpreter"
-        query = f"""
-        [out:json][timeout:25];
-        (
-          node["amenity"~"hospital|clinic|doctors|pharmacy|health_centre"](around:{radius_m},{lat},{lon});
-          way["amenity"~"hospital|clinic|doctors|pharmacy|health_centre"](around:{radius_m},{lat},{lon});
-        );
-        out center tags;
-        """
-        try:
-            resp = _requests.post(overpass_url, data={"data": query}, timeout=30)
+
+        def run_query(r):
+            q = f"""
+[out:json][timeout:30];
+(
+  node["amenity"="doctors"](around:{r},{lat},{lon});
+  node["amenity"="hospital"](around:{r},{lat},{lon});
+  node["amenity"="clinic"](around:{r},{lat},{lon});
+  node["amenity"="pharmacy"](around:{r},{lat},{lon});
+  node["amenity"="health_centre"](around:{r},{lat},{lon});
+  node["amenity"="dentist"](around:{r},{lat},{lon});
+  node["healthcare"="doctor"](around:{r},{lat},{lon});
+  node["healthcare"="hospital"](around:{r},{lat},{lon});
+  node["healthcare"="clinic"](around:{r},{lat},{lon});
+  way["amenity"="hospital"](around:{r},{lat},{lon});
+  way["amenity"="clinic"](around:{r},{lat},{lon});
+  way["amenity"="health_centre"](around:{r},{lat},{lon});
+  way["healthcare"="hospital"](around:{r},{lat},{lon});
+);
+out center tags;
+"""
+            resp = _requests.post(overpass_url, data={"data": q}, timeout=35)
             resp.raise_for_status()
-            elements = resp.json().get("elements", [])
-            results = []
-            for el in elements:
-                tags = el.get("tags", {})
-                name = tags.get("name") or tags.get("name:en") or tags.get("operator")
-                if not name:
-                    continue
-                if el["type"] == "node":
-                    elat, elon = el["lat"], el["lon"]
-                else:
-                    elat = el.get("center", {}).get("lat")
-                    elon = el.get("center", {}).get("lon")
-                if not elat or not elon:
-                    continue
-                amenity = tags.get("amenity", "clinic").replace("_", " ").title()
-                phone = tags.get("phone") or tags.get("contact:phone") or "N/A"
-                address_parts = [
-                    tags.get("addr:housenumber", ""),
-                    tags.get("addr:street", ""),
-                    tags.get("addr:city", ""),
-                ]
-                address = ", ".join(p for p in address_parts if p) or tags.get("addr:full", "N/A")
-                dist = round(geodesic((lat, lon), (elat, elon)).km, 2)
-                results.append({
-                    "name": name,
-                    "type": amenity,
-                    "lat": elat,
-                    "lon": elon,
-                    "phone": phone,
-                    "address": address,
-                    "distance_km": dist,
-                    "opening_hours": tags.get("opening_hours", "N/A"),
-                    "website": tags.get("website") or tags.get("contact:website", "N/A"),
-                })
-            return sorted(results, key=lambda x: x["distance_km"])
-        except Exception as e:
-            return []
+            return resp.json().get("elements", [])
 
-    # ── GPS via streamlit-geolocation (works on http too) ─────────────────
-    st.subheader("📍 Detect Your Real Location")
-    st.caption("Click the button below — your browser will ask for location permission.")
+        tried_radii = [radius_m]
+        if radius_m < 10000: tried_radii.append(10000)
+        if radius_m < 20000: tried_radii.append(20000)
+
+        elements = []; used_radius = radius_m; api_error = None
+        for r in tried_radii:
+            try:
+                elements = run_query(r); used_radius = r
+                if elements: break
+            except _requests.exceptions.Timeout:
+                api_error = "⏱️ Overpass API timed out. Try again."; break
+            except _requests.exceptions.ConnectionError:
+                api_error = "❌ No internet connection."; break
+            except Exception as e:
+                api_error = f"❌ API Error: {e}"; break
+
+        if api_error:
+            return [], api_error, used_radius
+
+        results = []; seen = set()
+        for el in elements:
+            tags = el.get("tags", {})
+            name = (tags.get("name") or tags.get("name:en") or
+                    tags.get("operator") or tags.get("brand") or "Unknown Facility")
+            if el["type"] == "node":
+                elat, elon = el.get("lat"), el.get("lon")
+            else:
+                center = el.get("center", {})
+                elat, elon = center.get("lat"), center.get("lon")
+            if elat is None or elon is None: continue
+            try: elat, elon = float(elat), float(elon)
+            except (TypeError, ValueError): continue
+            coord_key = (round(elat,5), round(elon,5))
+            if coord_key in seen: continue
+            seen.add(coord_key)
+            amenity = tags.get("amenity") or tags.get("healthcare") or "clinic"
+            phone = tags.get("phone") or tags.get("contact:phone") or tags.get("mobile") or "N/A"
+            addr_parts = [tags.get("addr:housenumber",""), tags.get("addr:street",""), tags.get("addr:city","")]
+            address = ", ".join(p for p in addr_parts if p) or tags.get("addr:full","N/A")
+            dist = _hav(lat, lon, elat, elon)
+            results.append({
+                "name": name, "type": amenity.replace("_"," ").title(),
+                "amenity_raw": amenity.lower(), "lat": elat, "lon": elon,
+                "phone": phone, "address": address, "distance_km": dist,
+                "opening_hours": tags.get("opening_hours","N/A"),
+                "website": tags.get("website") or tags.get("contact:website","N/A"),
+            })
+        results.sort(key=lambda x: x["distance_km"])
+        return results, None, used_radius
+
+    # ── GPS Location ───────────────────────────────────────────────────────
+    st.subheader("📍 Detect Your Location")
+    st.caption("Allow browser location access to auto-detect your position.")
     location = streamlit_geolocation()
-
-    gps_lat = location.get("latitude") if location else None
+    gps_lat = location.get("latitude")  if location else None
     gps_lon = location.get("longitude") if location else None
 
-    if gps_lat and gps_lon:
-        st.success(f"✅ Real location detected: {gps_lat:.5f}, {gps_lon:.5f}")
-        # show live location map immediately
-        st.subheader("📍 Your Current Location")
-        live_map = folium.Map(location=[gps_lat, gps_lon], zoom_start=15, tiles="OpenStreetMap")
-        folium.Marker(
-            location=[gps_lat, gps_lon],
-            popup="📌 You are here",
-            icon=folium.Icon(color="blue", icon="home"),
-            tooltip="Your Real Location"
-        ).add_to(live_map)
-        folium.Circle(
-            location=[gps_lat, gps_lon],
-            radius=500,
-            color="#1976d2",
-            fill=True,
-            fill_opacity=0.15,
-            tooltip="~500m radius"
-        ).add_to(live_map)
-        st_folium(live_map, width=1200, height=350)
+    if not gps_lat or not gps_lon:
+        st.warning("⚠️ Location not detected. Allow location access in your browser, or enter coordinates manually below.")
+        mc1, mc2 = st.columns(2)
+        with mc1:
+            gps_lat = st.number_input("Latitude (manual)", value=28.7041, format="%.6f", key="manual_lat")
+        with mc2:
+            gps_lon = st.number_input("Longitude (manual)", value=77.1025, format="%.6f", key="manual_lon")
+    else:
+        st.success(f"✅ Location detected: **{gps_lat:.5f}, {gps_lon:.5f}**")
 
-    # ── Manual input (fallback) ────────────────────────────────────────────
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("📍 Your Location")
-        default_lat = gps_lat if gps_lat else 28.7041
-        default_lon = gps_lon if gps_lon else 77.1025
-        user_lat = st.number_input("Latitude", value=default_lat, format="%.6f", key="doc_lat")
-        user_lon = st.number_input("Longitude", value=default_lon, format="%.6f", key="doc_lon")
-        st.caption("💡 Click 'Detect My Real Location' above to auto-fill, or enter manually.")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with col2:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("🔍 Search Settings")
-        max_distance_km = st.slider("Radius (km)", min_value=1, max_value=20, value=5, step=1, key="doc_radius")
-        facility_filter = st.selectbox("Facility Type", ["All", "Hospital", "Clinic", "Doctors", "Pharmacy", "Health Centre"], key="doc_filter")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # ── Fetch real data ────────────────────────────────────────────────────
-    if st.button("🔍 Search Nearby Doctors & Hospitals", key="search_real_doctors"):
-        st.session_state["real_doctors_result"] = fetch_real_doctors(user_lat, user_lon, radius_m=max_distance_km * 1000)
-        st.session_state["real_doctors_lat"] = user_lat
-        st.session_state["real_doctors_lon"] = user_lon
-
-    real_doctors = st.session_state.get("real_doctors_result", [])
-    search_lat = st.session_state.get("real_doctors_lat", user_lat)
-    search_lon = st.session_state.get("real_doctors_lon", user_lon)
-
-    # Apply facility filter
-    if facility_filter != "All" and real_doctors:
-        real_doctors = [d for d in real_doctors if facility_filter.lower() in d["type"].lower()]
-
-    # ── Map ────────────────────────────────────────────────────────────────
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("🗺️ Live Map")
-    m = folium.Map(location=[search_lat, search_lon], zoom_start=14, tiles="OpenStreetMap")
-
-    # User marker
-    folium.Marker(
-        location=[search_lat, search_lon],
-        popup="📌 Your Location",
-        icon=folium.Icon(color="blue", icon="home"),
-        tooltip="Your Location"
-    ).add_to(m)
-
-    # Doctor/hospital markers
-    type_colors = {
-        "hospital": "red", "clinic": "green", "doctors": "darkgreen",
-        "pharmacy": "orange", "health centre": "purple"
-    }
-    for doc in real_doctors:
-        color = type_colors.get(doc["type"].lower(), "gray")
-        popup_html = f"""
-        <b>{doc['name']}</b><br>
-        🏥 {doc['type']}<br>
-        📞 {doc['phone']}<br>
-        📍 {doc['address']}<br>
-        🕐 {doc['opening_hours']}<br>
-        <b>📏 {doc['distance_km']} km away</b>
-        """
-        folium.Marker(
-            location=[doc["lat"], doc["lon"]],
-            popup=folium.Popup(popup_html, max_width=280),
-            icon=folium.Icon(color=color, icon="plus-sign"),
-            tooltip=f"{doc['name']} ({doc['distance_km']} km)"
-        ).add_to(m)
-
-    st_folium(m, width=1200, height=500)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # ── Results table ──────────────────────────────────────────────────────
     st.divider()
-    if real_doctors:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader(f"👨‍⚕️ Found {len(real_doctors)} Healthcare Providers (sorted by distance)")
 
-        # Nearest one highlighted
-        nearest = real_doctors[0]
-        st.success(f"🏆 Nearest: **{nearest['name']}** — {nearest['type']} — {nearest['distance_km']} km away | 📞 {nearest['phone']}")
+    # ── Filters ────────────────────────────────────────────────────────────
+    f1, f2, f3 = st.columns([1, 1, 1])
+    with f1:
+        max_distance_km = st.slider("Search Radius (km)", min_value=1, max_value=25, value=5, step=1)
+    with f2:
+        facility_filter = st.selectbox("Facility Type", ["All","Hospital","Clinic","Doctors","Pharmacy","Health Centre","Dentist"])
+    with f3:
+        show_test_data = st.checkbox("🧪 Test Mode (dummy markers)", value=False,
+                                     help="Adds 3 dummy markers near you to verify map rendering.")
 
-        display_df = pd.DataFrame(real_doctors)[["name", "type", "distance_km", "phone", "address", "opening_hours"]]
-        display_df.columns = ["Name", "Type", "Distance (km)", "Phone", "Address", "Opening Hours"]
-        st.dataframe(display_df, use_container_width=True)
+    if st.button("🔍 Search Nearby Healthcare", key="search_doctors_btn", type="primary"):
+        with st.spinner(f"🔍 Searching OSM within {max_distance_km} km..."):
+            results, api_err, used_r = fetch_doctors_osm(gps_lat, gps_lon, radius_m=max_distance_km*1000)
+        st.session_state["doctor_results"] = results
+        st.session_state["doctor_api_err"] = api_err
+        st.session_state["doctor_used_r"]  = used_r
+        st.session_state["doctor_lat"]     = gps_lat
+        st.session_state["doctor_lon"]     = gps_lon
 
-        # Diagnosis-based recommendation using SpecialtyMatcher
-        st.divider()
-        st.subheader("💡 Recommend by Diagnosis")
-        selected_diagnosis = st.selectbox("Select your diagnosis", list(medicine_mapping.keys()), key="diag_recommend")
-        recommended_specialties = SpecialtyMatcher.get_matching_specialties(selected_diagnosis)
-        st.info(f"Recommended specialties for **{selected_diagnosis}**: {', '.join(recommended_specialties)}")
-        st.markdown('</div>', unsafe_allow_html=True)
+    if "doctor_results" in st.session_state:
+        raw_results = st.session_state.get("doctor_results", [])
+        api_err     = st.session_state.get("doctor_api_err")
+        used_r      = st.session_state.get("doctor_used_r", max_distance_km*1000)
+        s_lat       = st.session_state.get("doctor_lat", gps_lat)
+        s_lon       = st.session_state.get("doctor_lon", gps_lon)
 
-    elif "real_doctors_result" in st.session_state:
-        st.warning("⚠️ No healthcare providers found in this area. Try increasing the radius.")
+        if show_test_data:
+            dummy = [
+                {"name":"🧪 Test Hospital",  "type":"Hospital",  "amenity_raw":"hospital",
+                 "lat":s_lat+0.010,"lon":s_lon+0.010,"phone":"N/A","address":"Near You",
+                 "distance_km":_haversine(s_lat,s_lon,s_lat+0.010,s_lon+0.010),"opening_hours":"24/7","website":"N/A"},
+                {"name":"🧪 Test Clinic",    "type":"Clinic",    "amenity_raw":"clinic",
+                 "lat":s_lat-0.008,"lon":s_lon+0.005,"phone":"N/A","address":"Near You",
+                 "distance_km":_haversine(s_lat,s_lon,s_lat-0.008,s_lon+0.005),"opening_hours":"9am-6pm","website":"N/A"},
+                {"name":"🧪 Test Pharmacy",  "type":"Pharmacy",  "amenity_raw":"pharmacy",
+                 "lat":s_lat+0.005,"lon":s_lon-0.010,"phone":"N/A","address":"Near You",
+                 "distance_km":_haversine(s_lat,s_lon,s_lat+0.005,s_lon-0.010),"opening_hours":"8am-10pm","website":"N/A"},
+            ]
+            raw_results = dummy + raw_results
+
+        if facility_filter != "All":
+            kw = facility_filter.lower()
+            filtered = [d for d in raw_results if kw in d["type"].lower() or kw in d["amenity_raw"]]
+        else:
+            filtered = list(raw_results)
+        filtered.sort(key=lambda x: x["distance_km"])
+
+        # ── Debug ──────────────────────────────────────────────────────────
+        with st.expander("🛠️ Debug Info", expanded=(len(filtered)==0 and not show_test_data)):
+            st.write(f"📍 Searched at: `{s_lat:.6f}, {s_lon:.6f}`")
+            st.write(f"📏 Radius used: `{used_r/1000:.1f} km`")
+            st.write(f"📦 Raw OSM results: `{len(raw_results)}`")
+            st.write(f"🔎 After filter ({facility_filter}): `{len(filtered)}`")
+            if api_err:
+                st.error(api_err)
+            elif len(raw_results) == 0:
+                st.warning("OSM returned 0 results. Sparse map data in this area. Enable Test Mode to verify map works.")
+            else:
+                st.success(f"✅ OSM API OK — {len(raw_results)} facilities fetched.")
+            if used_r > max_distance_km*1000:
+                st.info(f"ℹ️ Radius auto-expanded to {used_r/1000:.0f} km (original had no results).")
+
+        # ── Map + Category List ────────────────────────────────────────────
+        map_col, list_col = st.columns([2, 1])
+
+        with map_col:
+            st.markdown("**🗺️ Live Map**")
+            m = folium.Map(location=[s_lat, s_lon], zoom_start=14,
+                           tiles="CartoDB positron", control_scale=True)
+            folium.Marker(
+                location=[s_lat, s_lon],
+                popup=folium.Popup("<b>📌 You are here</b>", max_width=150),
+                icon=folium.Icon(color="red", icon="home", prefix="fa"),
+                tooltip="📌 Your Location"
+            ).add_to(m)
+            folium.Circle(
+                location=[s_lat, s_lon], radius=used_r,
+                color="#00ffc8", fill=True, fill_opacity=0.05,
+                tooltip=f"Search radius: {used_r/1000:.1f} km"
+            ).add_to(m)
+            type_colors = {
+                "hospital":"darkred","clinic":"cadetblue","doctors":"blue",
+                "doctor":"blue","pharmacy":"orange","health centre":"purple","dentist":"green",
+            }
+            for doc in filtered:
+                color = type_colors.get(doc["amenity_raw"], "darkblue")
+                popup_html = f"""
+<div style="font-family:Arial,sans-serif;min-width:200px;padding:4px;">
+  <b style="font-size:14px;color:#0d47a1;">{doc['name']}</b><br>
+  🏥 <b>Type:</b> {doc['type']}<br>
+  📞 <b>Phone:</b> {doc['phone']}<br>
+  📍 <b>Address:</b> {doc['address']}<br>
+  🕐 <b>Hours:</b> {doc['opening_hours']}<br>
+  <hr style="margin:5px 0;">
+  <b style="color:#c62828;">📏 {doc['distance_km']} km away</b>
+</div>"""
+                folium.Marker(
+                    location=[doc["lat"], doc["lon"]],
+                    popup=folium.Popup(popup_html, max_width=300),
+                    icon=folium.Icon(color=color, icon="plus-sign"),
+                    tooltip=f"🏥 {doc['name']} ({doc['distance_km']} km)"
+                ).add_to(m)
+            st_folium(m, width="100%", height=500, key="doctor_map_v3")
+
+        with list_col:
+            st.markdown("**📋 Results by Category**")
+            if not filtered:
+                st.warning("No nearby doctors found.")
+                st.info("💡 Try:\n- Increasing the radius\n- Enabling Test Mode\n- Checking internet connection")
+            else:
+                categories = {
+                    "🏥 Hospitals":      ["hospital"],
+                    "🩺 Doctors":        ["doctors","doctor"],
+                    "🏨 Clinics":        ["clinic"],
+                    "💊 Pharmacies":     ["pharmacy"],
+                    "🦷 Dentists":       ["dentist"],
+                    "🏪 Health Centres": ["health centre","health_centre"],
+                }
+                shown = set()
+                for cat_label, cat_keys in categories.items():
+                    cat_items = [d for d in filtered
+                                 if any(k in d["amenity_raw"] or k in d["type"].lower() for k in cat_keys)]
+                    if not cat_items: continue
+                    st.markdown(f"""
+<div style="background:rgba(0,255,200,0.06);border:1px solid rgba(0,255,200,0.2);
+border-radius:10px;padding:10px 14px;margin:8px 0;">
+<div style="font-size:0.85rem;font-weight:700;color:#00ffc8;margin-bottom:8px;">{cat_label} ({len(cat_items)})</div>
+""", unsafe_allow_html=True)
+                    for d in cat_items[:8]:
+                        shown.add(d["name"])
+                        ph = f"📞 {d['phone']}" if d['phone'] != 'N/A' else ""
+                        st.markdown(f"""
+<div style="padding:8px 10px;margin:4px 0;background:rgba(255,255,255,0.03);
+border-radius:8px;border-left:3px solid rgba(0,255,200,0.3);">
+<div style="font-size:0.85rem;font-weight:600;color:#e2e8f0;">{d['name']}</div>
+<div style="font-size:0.75rem;color:#64748b;">📏 {d['distance_km']} km &nbsp;{ph}</div>
+</div>""", unsafe_allow_html=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                others = [d for d in filtered if d["name"] not in shown]
+                if others:
+                    st.markdown("""
+<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
+border-radius:10px;padding:10px 14px;margin:8px 0;">
+<div style="font-size:0.85rem;font-weight:700;color:#94a3b8;margin-bottom:8px;">🏪 Other</div>
+""", unsafe_allow_html=True)
+                    for d in others[:5]:
+                        st.markdown(f"""
+<div style="padding:8px 10px;margin:4px 0;background:rgba(255,255,255,0.02);border-radius:8px;">
+<div style="font-size:0.85rem;font-weight:600;color:#e2e8f0;">{d['name']}</div>
+<div style="font-size:0.75rem;color:#64748b;">📏 {d['distance_km']} km | {d['type']}</div>
+</div>""", unsafe_allow_html=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+        # ── Full table ─────────────────────────────────────────────────────
+        if filtered:
+            st.divider()
+            st.subheader(f"📊 All {len(filtered)} Results — Sorted by Distance")
+            nearest = filtered[0]
+            st.success(f"🏆 Nearest: **{nearest['name']}** ({nearest['type']}) — {nearest['distance_km']} km | 📞 {nearest['phone']}")
+            df_show = pd.DataFrame(filtered)[["name","type","distance_km","phone","address","opening_hours"]]
+            df_show.columns = ["Name","Type","Distance (km)","Phone","Address","Opening Hours"]
+            st.dataframe(df_show, use_container_width=True)
+
+            st.divider()
+            st.subheader("💡 Specialist Recommendation by Diagnosis")
+            sel_diag = st.selectbox("Select diagnosis", list(medicine_mapping.keys()), key="diag_recommend")
+            rec_spec = SpecialtyMatcher.get_matching_specialties(sel_diag)
+            st.info(f"Recommended specialties for **{sel_diag}**: {', '.join(rec_spec)}")
 
 # ===== TAB 6: Medicine Guide =====
 with tab6:
