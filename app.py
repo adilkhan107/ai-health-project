@@ -1351,9 +1351,30 @@ with tab5:
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         return round(R * c, 2)
 
+    # Fallback static data shown when API fails completely
+    FALLBACK_DOCTORS = [
+        {"name":"Apollo Hospital (Fallback)",    "type":"Hospital", "amenity_raw":"hospital",
+         "lat":lat+0.018,"lon":lon+0.012,"phone":"1066","address":"Nearby Area",
+         "distance_km":2.1,"opening_hours":"24/7","website":"N/A"},
+        {"name":"Government PHC (Fallback)",     "type":"Clinic",   "amenity_raw":"clinic",
+         "lat":lat-0.010,"lon":lon+0.008,"phone":"104", "address":"Nearby Area",
+         "distance_km":1.3,"opening_hours":"8am-8pm","website":"N/A"},
+        {"name":"Jan Aushadhi Pharmacy (Fallback)","type":"Pharmacy","amenity_raw":"pharmacy",
+         "lat":lat+0.005,"lon":lon-0.009,"phone":"N/A","address":"Nearby Area",
+         "distance_km":0.8,"opening_hours":"9am-9pm","website":"N/A"},
+    ] if 'lat' in dir() else []
+
     @st.cache_data(ttl=300, show_spinner=False)
-    def fetch_doctors_osm(lat, lon, radius_m=5000):
-        import math as _m
+    def fetch_doctors_osm(lat, lon, radius_m=3000):
+        """
+        Fetch healthcare facilities from OSM Overpass API.
+        - Splits into 3 small focused queries to avoid 504 timeout
+        - Each query uses [timeout:25] and small radius (2-5km)
+        - Retries once on failure
+        - Returns fallback data if all queries fail
+        """
+        import math as _m, time as _time
+
         def _hav(la1, lo1, la2, lo2):
             R = 6371.0
             dlat = _m.radians(la2-la1); dlon = _m.radians(lo2-lo1)
@@ -1362,51 +1383,94 @@ with tab5:
 
         overpass_url = "https://overpass-api.de/api/interpreter"
 
-        def run_query(r):
-            q = f"""
-[out:json][timeout:30];
-(
-  node["amenity"="doctors"](around:{r},{lat},{lon});
-  node["amenity"="hospital"](around:{r},{lat},{lon});
-  node["amenity"="clinic"](around:{r},{lat},{lon});
-  node["amenity"="pharmacy"](around:{r},{lat},{lon});
-  node["amenity"="health_centre"](around:{r},{lat},{lon});
-  node["amenity"="dentist"](around:{r},{lat},{lon});
-  node["healthcare"="doctor"](around:{r},{lat},{lon});
-  node["healthcare"="hospital"](around:{r},{lat},{lon});
-  node["healthcare"="clinic"](around:{r},{lat},{lon});
-  way["amenity"="hospital"](around:{r},{lat},{lon});
-  way["amenity"="clinic"](around:{r},{lat},{lon});
-  way["amenity"="health_centre"](around:{r},{lat},{lon});
-  way["healthcare"="hospital"](around:{r},{lat},{lon});
-);
-out center tags;
-"""
-            resp = _requests.post(overpass_url, data={"data": q}, timeout=35)
-            resp.raise_for_status()
-            return resp.json().get("elements", [])
+        # Split into 3 small queries — each targets specific amenity types
+        # Smaller queries = less server load = no 504
+        QUERY_GROUPS = [
+            # Group 1: Hospitals & clinics (most important)
+            f"""[out:json][timeout:25];
+(node["amenity"="hospital"](around:{radius_m},{lat},{lon});
+ node["amenity"="clinic"](around:{radius_m},{lat},{lon});
+ way["amenity"="hospital"](around:{radius_m},{lat},{lon});
+ way["amenity"="clinic"](around:{radius_m},{lat},{lon}););
+out center tags;""",
+            # Group 2: Doctors & health centres
+            f"""[out:json][timeout:25];
+(node["amenity"="doctors"](around:{radius_m},{lat},{lon});
+ node["amenity"="health_centre"](around:{radius_m},{lat},{lon});
+ node["healthcare"="doctor"](around:{radius_m},{lat},{lon});
+ node["healthcare"="clinic"](around:{radius_m},{lat},{lon}););
+out center tags;""",
+            # Group 3: Pharmacy & dentist
+            f"""[out:json][timeout:25];
+(node["amenity"="pharmacy"](around:{radius_m},{lat},{lon});
+ node["amenity"="dentist"](around:{radius_m},{lat},{lon}););
+out center tags;""",
+        ]
 
-        tried_radii = [radius_m]
-        if radius_m < 10000: tried_radii.append(10000)
-        if radius_m < 20000: tried_radii.append(20000)
+        def _post_with_retry(query, retries=2):
+            """POST query with retry on timeout/error."""
+            for attempt in range(retries):
+                try:
+                    resp = _requests.post(
+                        overpass_url,
+                        data={"data": query},
+                        timeout=28,          # slightly under OSM timeout:25
+                        headers={"User-Agent": "HealthPredictApp/1.0"}
+                    )
+                    if resp.status_code == 504:
+                        if attempt < retries - 1:
+                            _time.sleep(1.5)
+                            continue
+                        return [], "504"
+                    resp.raise_for_status()
+                    return resp.json().get("elements", []), None
+                except _requests.exceptions.Timeout:
+                    if attempt < retries - 1:
+                        _time.sleep(1)
+                        continue
+                    return [], "timeout"
+                except _requests.exceptions.ConnectionError:
+                    return [], "no_internet"
+                except Exception as e:
+                    return [], str(e)
+            return [], "max_retries"
 
-        elements = []; used_radius = radius_m; api_error = None
-        for r in tried_radii:
-            try:
-                elements = run_query(r); used_radius = r
-                if elements: break
-            except _requests.exceptions.Timeout:
-                api_error = "⏱️ Overpass API timed out. Try again."; break
-            except _requests.exceptions.ConnectionError:
-                api_error = "❌ No internet connection."; break
-            except Exception as e:
-                api_error = f"❌ API Error: {e}"; break
+        # Run all 3 groups, collect results
+        all_elements = []
+        errors = []
+        for q in QUERY_GROUPS:
+            els, err = _post_with_retry(q)
+            if err:
+                errors.append(err)
+            else:
+                all_elements.extend(els)
 
-        if api_error:
-            return [], api_error, used_radius
+        # If all 3 failed → return fallback
+        if not all_elements and errors:
+            err_msg = errors[0]
+            if "504" in err_msg or "timeout" in err_msg:
+                msg = "⏱️ Overpass API timed out (504). Showing fallback data."
+            elif "no_internet" in err_msg:
+                msg = "❌ No internet connection. Showing fallback data."
+            else:
+                msg = f"❌ API Error: {err_msg}. Showing fallback data."
+            # Return fallback with dynamic coords
+            fallback = [
+                {"name":"Apollo Hospital (Fallback)",     "type":"Hospital", "amenity_raw":"hospital",
+                 "lat":lat+0.018,"lon":lon+0.012,"phone":"1066","address":"Nearby Area",
+                 "distance_km":_hav(lat,lon,lat+0.018,lon+0.012),"opening_hours":"24/7","website":"N/A"},
+                {"name":"Government PHC (Fallback)",      "type":"Clinic",   "amenity_raw":"clinic",
+                 "lat":lat-0.010,"lon":lon+0.008,"phone":"104", "address":"Nearby Area",
+                 "distance_km":_hav(lat,lon,lat-0.010,lon+0.008),"opening_hours":"8am-8pm","website":"N/A"},
+                {"name":"Jan Aushadhi Pharmacy (Fallback)","type":"Pharmacy","amenity_raw":"pharmacy",
+                 "lat":lat+0.005,"lon":lon-0.009,"phone":"N/A","address":"Nearby Area",
+                 "distance_km":_hav(lat,lon,lat+0.005,lon-0.009),"opening_hours":"9am-9pm","website":"N/A"},
+            ]
+            return fallback, msg, radius_m
 
+        # Parse elements
         results = []; seen = set()
-        for el in elements:
+        for el in all_elements:
             tags = el.get("tags", {})
             name = (tags.get("name") or tags.get("name:en") or
                     tags.get("operator") or tags.get("brand") or "Unknown Facility")
@@ -1433,8 +1497,10 @@ out center tags;
                 "opening_hours": tags.get("opening_hours","N/A"),
                 "website": tags.get("website") or tags.get("contact:website","N/A"),
             })
+
         results.sort(key=lambda x: x["distance_km"])
-        return results, None, used_radius
+        warn = f"⚠️ {len(errors)} of 3 query groups failed." if errors else None
+        return results, warn, radius_m
 
     # ── GPS Location ───────────────────────────────────────────────────────
     st.subheader("📍 Detect Your Location")
@@ -1467,7 +1533,7 @@ out center tags;
 
     if st.button("🔍 Search Nearby Healthcare", key="search_doctors_btn", type="primary"):
         with st.spinner(f"🔍 Searching OSM within {max_distance_km} km..."):
-            results, api_err, used_r = fetch_doctors_osm(gps_lat, gps_lon, radius_m=max_distance_km*1000)
+            results, api_err, used_r = fetch_doctors_osm(gps_lat, gps_lon, radius_m=min(max_distance_km*1000, 5000))
         st.session_state["doctor_results"] = results
         st.session_state["doctor_api_err"] = api_err
         st.session_state["doctor_used_r"]  = used_r
