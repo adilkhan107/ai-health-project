@@ -16,206 +16,440 @@ from server.database.patient_history import PatientHistoryDB
 
 # Main app content (only shown if logged in)
 def main_app():
-    # Custom CSS for strong healthcare theme
+    # Hackathon Dark Theme — CSS only
     st.markdown("""
 <style>
-    /* Overall theme */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
+
+    /* ═══════════════════════════════════════════
+       BASE — deep dark background
+    ═══════════════════════════════════════════ */
+    html, body, [class*="css"] {
+        font-family: 'Inter', 'Space Grotesk', sans-serif !important;
+    }
+    .main .block-container {
+        padding: 2rem 2.5rem 3rem !important;
+        max-width: 1400px;
+    }
     .main {
-        background-color: #f0f8ff;
-        color: #2c3e50;
+        background: #050d1a !important;
     }
-    
-    /* Header styling */
-    .stTitle {
-        color: #1e3a8a;
-        font-family: 'Arial', sans-serif;
-        font-weight: bold;
-        text-align: center;
+    /* Dark background for entire app */
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(135deg, #050d1a 0%, #0a1628 50%, #060e1c 100%) !important;
     }
-    
-    /* Tab styling */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+    [data-testid="stHeader"] {
+        background: transparent !important;
     }
-    .stTabs [data-baseweb="tab"] {
-        background-color: #e3f2fd;
-        border-radius: 8px;
-        padding: 10px 20px;
-        color: #1565c0;
-        font-weight: 600;
+
+    /* ═══════════════════════════════════════════
+       SIDEBAR — darker with cyan glow
+    ═══════════════════════════════════════════ */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #020810 0%, #060f1e 50%, #040c18 100%) !important;
+        border-right: 1px solid rgba(0,255,200,0.12) !important;
     }
-    .stTabs [aria-selected="true"] {
-        background-color: #1976d2;
-        color: white;
+    [data-testid="stSidebar"] > div:first-child {
+        padding-top: 1.5rem;
     }
-    
-    /* Button styling */
-    .stButton>button {
-        background-color: #1976d2;
-        color: white;
-        border-radius: 8px;
-        border: none;
-        padding: 10px 20px;
-        font-weight: bold;
-        transition: all 0.3s ease;
+    [data-testid="stSidebar"] * {
+        color: #94a3b8 !important;
     }
-    .stButton>button:hover {
-        background-color: #1565c0;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    [data-testid="stSidebar"] h1 {
+        color: #e2e8f0 !important;
+        font-size: 1.1rem !important;
+        font-weight: 800 !important;
     }
-    
-    /* Success, info, warning messages */
-    .stSuccess {
-        background-color: #e8f5e8;
-        border-left: 5px solid #4caf50;
-        padding: 10px;
-        border-radius: 5px;
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3 {
+        color: #00ffc8 !important;
+        font-weight: 700 !important;
+        font-size: 0.7rem !important;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
     }
-    .stInfo {
-        background-color: #e3f2fd;
-        border-left: 5px solid #2196f3;
-        padding: 10px;
-        border-radius: 5px;
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] li {
+        color: #64748b !important;
+        font-size: 0.83rem !important;
+        line-height: 1.7;
     }
-    .stWarning {
-        background-color: #fff3e0;
-        border-left: 5px solid #ff9800;
-        padding: 10px;
-        border-radius: 5px;
+    [data-testid="stSidebar"] strong {
+        color: #cbd5e1 !important;
     }
-    .stError {
-        background-color: #ffebee;
-        border-left: 5px solid #f44336;
-        padding: 10px;
-        border-radius: 5px;
+    [data-testid="stSidebar"] hr {
+        border-color: rgba(0,255,200,0.1) !important;
+        margin: 1rem 0 !important;
     }
-    
-    /* Input fields */
-    .stTextInput>div>div>input, .stNumberInput>div>div>input, .stSelectbox>div>div>select {
-        border-radius: 8px;
-        border: 2px solid #e3f2fd;
-        padding: 8px;
+
+    /* ═══════════════════════════════════════════
+       HERO BANNER — neon gradient
+    ═══════════════════════════════════════════ */
+    .hero-banner {
+        background: linear-gradient(135deg, #0a0f1e 0%, #0d1f3c 40%, #0a2040 100%);
+        border-radius: 20px;
+        padding: 2.4rem 2.8rem;
+        margin-bottom: 1.8rem;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(0,255,200,0.2);
+        box-shadow: 0 0 40px rgba(0,255,200,0.08), 0 0 80px rgba(0,150,255,0.06), inset 0 1px 0 rgba(255,255,255,0.05);
     }
-    .stTextInput>div>div>input:focus, .stNumberInput>div>div>input:focus, .stSelectbox>div>div>select:focus {
-        border-color: #1976d2;
-        box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
+    .hero-banner::before {
+        content: '';
+        position: absolute;
+        top: -60px; right: -60px;
+        width: 300px; height: 300px;
+        background: radial-gradient(circle, rgba(0,255,200,0.08) 0%, transparent 70%);
+        border-radius: 50%;
     }
-    
-    /* Sidebar */
-    .sidebar .sidebar-content {
-        background-color: #ffffff;
-        border-right: 3px solid #1976d2;
-    /* Overall theme */
-    .main {
-        background-color: #f0f8ff;
-        color: #2c3e50;
+    .hero-banner::after {
+        content: '';
+        position: absolute;
+        bottom: -80px; left: 20%;
+        width: 250px; height: 250px;
+        background: radial-gradient(circle, rgba(0,150,255,0.07) 0%, transparent 70%);
+        border-radius: 50%;
     }
-    
-    /* Header styling */
-    .stTitle {
-        color: #1e3a8a;
-        font-family: 'Arial', sans-serif;
-        font-weight: bold;
-        text-align: center;
+    .hero-title {
+        font-family: 'Space Grotesk', sans-serif !important;
+        font-size: 2.1rem !important;
+        font-weight: 800 !important;
+        background: linear-gradient(90deg, #00ffc8, #00b4ff, #7c3aed) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        background-clip: text !important;
+        margin: 0 0 0.5rem 0 !important;
+        letter-spacing: -0.5px;
+        line-height: 1.2;
     }
-    
-    /* Tab styling */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+    .hero-subtitle {
+        font-size: 0.92rem !important;
+        color: #64748b !important;
+        margin: 0 !important;
+        font-weight: 400;
+        line-height: 1.6;
     }
-    .stTabs [data-baseweb="tab"] {
-        background-color: #e3f2fd;
-        border-radius: 8px;
-        padding: 10px 20px;
-        color: #1565c0;
-        font-weight: 600;
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0,255,200,0.08);
+        border: 1px solid rgba(0,255,200,0.3);
+        border-radius: 20px;
+        padding: 4px 14px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #00ffc8 !important;
+        margin-bottom: 1rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
     }
-    .stTabs [aria-selected="true"] {
-        background-color: #1976d2;
-        color: white;
-    }
-    
-    /* Button styling */
-    .stButton>button {
-        background-color: #1976d2;
-        color: white;
-        border-radius: 8px;
-        border: none;
-        padding: 10px 20px;
-        font-weight: bold;
-        transition: all 0.3s ease;
-    }
-    .stButton>button:hover {
-        background-color: #1565c0;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    }
-    
-    /* Success, info, warning messages */
-    .stSuccess {
-        background-color: #e8f5e8;
-        border-left: 5px solid #4caf50;
-        padding: 10px;
-        border-radius: 5px;
-    }
-    .stInfo {
-        background-color: #e3f2fd;
-        border-left: 5px solid #2196f3;
-        padding: 10px;
-        border-radius: 5px;
-    }
-    .stWarning {
-        background-color: #fff3e0;
-        border-left: 5px solid #ff9800;
-        padding: 10px;
-        border-radius: 5px;
-    }
-    .stError {
-        background-color: #ffebee;
-        border-left: 5px solid #f44336;
-        padding: 10px;
-        border-radius: 5px;
-    }
-    
-    /* Input fields */
-    .stTextInput>div>div>input, .stNumberInput>div>div>input, .stSelectbox>div>div>select {
-        border-radius: 8px;
-        border: 2px solid #e3f2fd;
-        padding: 8px;
-    }
-    .stTextInput>div>div>input:focus, .stNumberInput>div>div>input:focus, .stSelectbox>div>div>select:focus {
-        border-color: #1976d2;
-        box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
-    }
-    
-    /* Sidebar */
-    .sidebar .sidebar-content {
-        background-color: #ffffff;
-        border-right: 3px solid #1976d2;
-    }
-    
-    /* Cards for sections */
-    .card {
-        background-color: white;
+    .disclaimer-bar {
+        background: rgba(245,158,11,0.08);
+        border: 1px solid rgba(245,158,11,0.25);
         border-radius: 10px;
-        padding: 20px;
+        padding: 10px 16px;
+        font-size: 0.82rem;
+        color: #fbbf24 !important;
+        margin-bottom: 1.5rem;
+    }
+
+    /* ═══════════════════════════════════════════
+       TABS
+    ═══════════════════════════════════════════ */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 4px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 14px;
+        padding: 5px;
+        border: 1px solid rgba(255,255,255,0.07);
+        margin-bottom: 1.5rem;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background: transparent !important;
+        border-radius: 10px !important;
+        padding: 9px 20px !important;
+        color: #475569 !important;
+        font-weight: 600 !important;
+        font-size: 0.85rem !important;
+        transition: all 0.18s ease !important;
+        border: none !important;
+    }
+    .stTabs [data-baseweb="tab"]:hover {
+        background: rgba(0,255,200,0.06) !important;
+        color: #00ffc8 !important;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, rgba(0,255,200,0.15), rgba(0,180,255,0.15)) !important;
+        color: #00ffc8 !important;
+        border: 1px solid rgba(0,255,200,0.3) !important;
+        box-shadow: 0 0 16px rgba(0,255,200,0.12) !important;
+    }
+
+    /* ═══════════════════════════════════════════
+       HEADINGS
+    ═══════════════════════════════════════════ */
+    h1 { color: #e2e8f0 !important; font-weight: 800 !important; }
+    h2 { color: #cbd5e1 !important; font-weight: 700 !important; font-size: 1.25rem !important; }
+    h3 { color: #94a3b8 !important; font-weight: 600 !important; font-size: 1rem !important; }
+    p, li, span { color: #94a3b8; }
+
+    /* ═══════════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════════ */
+    .card {
+        background: rgba(255,255,255,0.03);
+        border-radius: 14px;
+        padding: 20px 24px;
         margin: 10px 0;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        border-left: 5px solid #1976d2;
+        border: 1px solid rgba(255,255,255,0.07);
+        border-top: 2px solid #00ffc8;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,255,200,0.04);
+        transition: border-color 0.2s, box-shadow 0.2s;
+        backdrop-filter: blur(10px);
     }
-    
-    /* Animation for loading */
+    .card:hover {
+        border-top-color: #00b4ff;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(0,255,200,0.06);
+    }
+
+    /* ═══════════════════════════════════════════
+       BUTTONS — neon glow
+    ═══════════════════════════════════════════ */
+    .stButton > button {
+        background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 10px !important;
+        padding: 11px 28px !important;
+        font-weight: 700 !important;
+        font-size: 0.92rem !important;
+        letter-spacing: 0.3px !important;
+        transition: all 0.22s ease !important;
+        box-shadow: 0 0 20px rgba(124,58,237,0.4), 0 4px 14px rgba(0,0,0,0.4) !important;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
+    }
+    .stButton > button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 0 35px rgba(124,58,237,0.6), 0 8px 24px rgba(0,0,0,0.5) !important;
+        background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%) !important;
+    }
+    .stButton > button:active {
+        transform: translateY(0) !important;
+    }
+
+    /* ═══════════════════════════════════════════
+       INPUTS
+    ═══════════════════════════════════════════ */
+    .stTextInput > div > div > input,
+    .stNumberInput > div > div > input,
+    .stTextArea > div > div > textarea {
+        border-radius: 9px !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        background: rgba(255,255,255,0.04) !important;
+        color: #e2e8f0 !important;
+        font-family: 'Inter', sans-serif !important;
+        font-size: 0.88rem !important;
+        transition: border-color 0.18s, box-shadow 0.18s !important;
+    }
+    .stTextInput > div > div > input:focus,
+    .stNumberInput > div > div > input:focus,
+    .stTextArea > div > div > textarea:focus {
+        border-color: #00ffc8 !important;
+        box-shadow: 0 0 0 3px rgba(0,255,200,0.1), 0 0 12px rgba(0,255,200,0.08) !important;
+        outline: none !important;
+    }
+    .stSelectbox > div > div {
+        border-radius: 9px !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        background: rgba(255,255,255,0.04) !important;
+        color: #e2e8f0 !important;
+    }
+    .stTextInput label, .stNumberInput label,
+    .stSelectbox label, .stTextArea label,
+    .stSlider label, .stRadio label {
+        font-size: 0.78rem !important;
+        font-weight: 600 !important;
+        color: #64748b !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.6px !important;
+    }
+
+    /* ═══════════════════════════════════════════
+       METRICS
+    ═══════════════════════════════════════════ */
+    [data-testid="stMetric"] {
+        background: rgba(255,255,255,0.03) !important;
+        border-radius: 12px !important;
+        padding: 16px 20px !important;
+        border: 1px solid rgba(255,255,255,0.07) !important;
+        border-bottom: 2px solid #00ffc8 !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 0.7rem !important;
+        font-weight: 700 !important;
+        color: #475569 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.8px !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.55rem !important;
+        font-weight: 800 !important;
+        color: #e2e8f0 !important;
+        font-family: 'Space Grotesk', sans-serif !important;
+    }
+
+    /* ═══════════════════════════════════════════
+       ALERTS
+    ═══════════════════════════════════════════ */
+    .stSuccess > div {
+        background: rgba(0,200,100,0.08) !important;
+        border-left: 3px solid #00c864 !important;
+        border-radius: 10px !important;
+        color: #4ade80 !important;
+    }
+    .stInfo > div {
+        background: rgba(0,180,255,0.08) !important;
+        border-left: 3px solid #00b4ff !important;
+        border-radius: 10px !important;
+        color: #7dd3fc !important;
+    }
+    .stWarning > div {
+        background: rgba(245,158,11,0.08) !important;
+        border-left: 3px solid #f59e0b !important;
+        border-radius: 10px !important;
+        color: #fbbf24 !important;
+    }
+    .stError > div {
+        background: rgba(239,68,68,0.08) !important;
+        border-left: 3px solid #ef4444 !important;
+        border-radius: 10px !important;
+        color: #f87171 !important;
+    }
+
+    /* ═══════════════════════════════════════════
+       EXPANDERS
+    ═══════════════════════════════════════════ */
+    .streamlit-expanderHeader {
+        background: rgba(255,255,255,0.03) !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        font-size: 0.88rem !important;
+        color: #94a3b8 !important;
+        border: 1px solid rgba(255,255,255,0.07) !important;
+        transition: all 0.18s !important;
+    }
+    .streamlit-expanderHeader:hover {
+        background: rgba(0,255,200,0.04) !important;
+        color: #00ffc8 !important;
+        border-color: rgba(0,255,200,0.2) !important;
+    }
+    .streamlit-expanderContent {
+        background: rgba(255,255,255,0.02) !important;
+        border: 1px solid rgba(255,255,255,0.06) !important;
+        border-top: none !important;
+        border-radius: 0 0 10px 10px !important;
+    }
+
+    /* ═══════════════════════════════════════════
+       DATAFRAME
+    ═══════════════════════════════════════════ */
+    [data-testid="stDataFrame"] {
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        border: 1px solid rgba(255,255,255,0.07) !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+    }
+
+    /* ═══════════════════════════════════════════
+       DIVIDER
+    ═══════════════════════════════════════════ */
+    hr {
+        border: none !important;
+        height: 1px !important;
+        background: linear-gradient(90deg, transparent, rgba(0,255,200,0.2) 30%, rgba(0,180,255,0.2) 70%, transparent) !important;
+        margin: 1.5rem 0 !important;
+    }
+
+    /* ═══════════════════════════════════════════
+       RADIO
+    ═══════════════════════════════════════════ */
+    .stRadio > div > label {
+        background: rgba(255,255,255,0.03) !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        border-radius: 8px !important;
+        padding: 8px 16px !important;
+        font-size: 0.85rem !important;
+        color: #64748b !important;
+        transition: all 0.18s !important;
+    }
+    .stRadio > div > label:hover {
+        border-color: rgba(0,255,200,0.3) !important;
+        color: #00ffc8 !important;
+        background: rgba(0,255,200,0.05) !important;
+    }
+
+    /* ═══════════════════════════════════════════
+       SLIDER
+    ═══════════════════════════════════════════ */
+    .stSlider > div > div > div > div {
+        background: linear-gradient(90deg, #00ffc8, #00b4ff) !important;
+    }
+
+    /* ═══════════════════════════════════════════
+       ANIMATIONS
+    ═══════════════════════════════════════════ */
     @keyframes pulse {
-        0% { opacity: 1; }
+        0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
-        100% { opacity: 1; }
     }
-    .loading {
-        animation: pulse 1.5s infinite;
+    @keyframes glow {
+        0%, 100% { box-shadow: 0 0 10px rgba(0,255,200,0.2); }
+        50% { box-shadow: 0 0 25px rgba(0,255,200,0.5); }
     }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .loading { animation: pulse 1.5s infinite; }
+    .glow    { animation: glow 2s infinite; }
+    .fade-in { animation: fadeInUp 0.4s ease forwards; }
+
+    /* ═══════════════════════════════════════════
+       SEVERITY BADGES
+    ═══════════════════════════════════════════ */
+    .badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px; border-radius: 20px;
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.3px;
+    }
+    .badge-low    { background: rgba(0,200,100,0.12); color: #4ade80; border: 1px solid rgba(0,200,100,0.25); }
+    .badge-medium { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
+    .badge-high   { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+
+    /* ═══════════════════════════════════════════
+       SCROLLBAR
+    ═══════════════════════════════════════════ */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #0a1628; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,255,200,0.25); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #00ffc8; }
+
+    /* ═══════════════════════════════════════════
+       MISC
+    ═══════════════════════════════════════════ */
+    .block-container { padding-top: 1.5rem !important; }
+    .stDownloadButton > button {
+        background: linear-gradient(135deg, #00c896, #00e0a8) !important;
+        color: #050d1a !important;
+    }
+    /* Plotly dark background */
+    .js-plotly-plot .plotly { background: transparent !important; }
 </style>
 """, unsafe_allow_html=True)
+
 
 st.set_page_config(
     page_title="🏥 Early Disease Prediction",
@@ -226,21 +460,43 @@ st.set_page_config(
 
 # Sidebar
 with st.sidebar:
-    st.image("https://img.icons8.com/color/96/000000/hospital.png", width=80)
-    st.title("🏥 Early ")
+    st.markdown("""
+<div style="text-align:center; padding: 0.5rem 0 1.2rem;">
+    <div style="font-size:2.8rem; margin-bottom:0.3rem;">🏥</div>
+    <div style="font-size:1.05rem; font-weight:800; color:#f0f9ff; letter-spacing:-0.3px; line-height:1.3;">
+        HealthPredict AI
+    </div>
+    <div style="font-size:0.72rem; color:#7dd3fc; font-weight:500; letter-spacing:1px; text-transform:uppercase; margin-top:4px;">
+        Rural Healthcare System
+    </div>
+</div>
+""", unsafe_allow_html=True)
     st.markdown("---")
-    st.markdown("**Navigation:**")
-    st.markdown("- 💊 Single Prediction (ML)")
-    st.markdown("- 📊 Batch Prediction")
-    st.markdown("- 🎤 Voice Input")
-    st.markdown("- 📋 Health History")
-    st.markdown("- 📈 Model Insights")
-    st.markdown("- 🗺️ Find Doctors")
-    st.markdown("- 💉 Medicine Guide")
+    st.markdown("""
+<div style="font-size:0.7rem; font-weight:700; color:#7dd3fc; text-transform:uppercase; letter-spacing:1.2px; margin-bottom:10px;">
+    Navigation
+</div>
+<div style="display:flex; flex-direction:column; gap:4px;">
+    <div style="padding:8px 12px; border-radius:8px; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.12); font-size:0.85rem; color:#e2e8f0;">💊 Single Prediction</div>
+    <div style="padding:8px 12px; border-radius:8px; font-size:0.85rem; color:#94a3b8;">🎤 Voice Input</div>
+    <div style="padding:8px 12px; border-radius:8px; font-size:0.85rem; color:#94a3b8;">📋 Health History</div>
+    <div style="padding:8px 12px; border-radius:8px; font-size:0.85rem; color:#94a3b8;">📈 Model Insights</div>
+    <div style="padding:8px 12px; border-radius:8px; font-size:0.85rem; color:#94a3b8;">🗺️ Find Doctors</div>
+    <div style="padding:8px 12px; border-radius:8px; font-size:0.85rem; color:#94a3b8;">💉 Medicine Guide</div>
+</div>
+""", unsafe_allow_html=True)
     st.markdown("---")
-    st.markdown("**About:**")
-    st.markdown("AI-powered healthcare diagnosis for early disease detection. Get predictions, medicine suggestions, and locate nearby doctors.")
-    st.markdown("**⚠️ Disclaimer:** For educational use only. Consult professionals for real medical advice.")
+    st.markdown("""
+<div style="font-size:0.7rem; font-weight:700; color:#7dd3fc; text-transform:uppercase; letter-spacing:1.2px; margin-bottom:8px;">
+    About
+</div>
+<div style="font-size:0.82rem; color:#94a3b8; line-height:1.65;">
+    AI-powered early disease detection for rural healthcare. Get instant predictions, medicine guidance, and locate nearby doctors.
+</div>
+<div style="margin-top:14px; padding:10px 12px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25); border-radius:8px; font-size:0.75rem; color:#fbbf24; line-height:1.5;">
+    ⚠️ For educational use only. Always consult a qualified healthcare professional.
+</div>
+""", unsafe_allow_html=True)
 
 import json
 
@@ -300,9 +556,19 @@ doctors_data = [
     {"name": "Dr. Neha Gupta", "type": "Gynecologist", "lat": 28.7589, "lon": 77.0266, "phone": "+91-9876543215", "address": "303 Women's Health Clinic, Gurgaon"},
 ]
 
-st.title("🏥 Early Disease Prediction System")
-st.markdown('<div class="card"><p style="text-align: center; font-size: 18px; color: #666;">🌟 <strong>AI-Powered Early Disease Detection & Diagnosis</strong> 🌟</p></div>', unsafe_allow_html=True)
-st.markdown("**⚠️ Disclaimer:** This is a demo app for educational purposes. Consult a healthcare professional for real medical advice.")
+st.markdown("""
+<div class="hero-banner">
+    <div class="hero-badge">⚡ Hackathon 2026 &nbsp;|&nbsp; AI Healthcare</div>
+    <div class="hero-title">Early Disease Prediction System</div>
+    <div class="hero-subtitle">AI-powered diagnosis · Medicine guidance · Real-time doctor discovery · Built for rural healthcare access</div>
+</div>
+""", unsafe_allow_html=True)
+st.markdown("""
+<div class="disclaimer-bar">
+    ⚠️ <strong>Disclaimer:</strong> For educational and demonstration purposes only. Always consult a qualified healthcare professional.
+</div>
+""", unsafe_allow_html=True)
+
 
 # Load the pipeline
 pipeline = load_model()
