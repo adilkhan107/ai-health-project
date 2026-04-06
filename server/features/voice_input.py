@@ -1,20 +1,19 @@
 """
 Voice Input Module - Hindi & English Speech Recognition
 Supports voice input for patient symptoms and diagnosis queries
+Uses gTTS (Google Text-to-Speech) for clear Hindi & English voice output
 """
 
 import speech_recognition as sr
-import pyttsx3
+import io
 from typing import Optional, Tuple
 import streamlit as st
 
 class VoiceInput:
-    """Handle voice input and text-to-speech conversion"""
+    """Handle voice input and text-to-speech conversion using gTTS"""
     
     def __init__(self):
         self.recognizer = sr.Recognizer()
-        self.engine = pyttsx3.init()
-        self.engine.setProperty('rate', 150)  # Speech rate
 
         # Microphone dependency: PyAudio is optional in environments without mic support
         try:
@@ -62,21 +61,29 @@ class VoiceInput:
     
     def text_to_speech(self, text: str, language: str = "hi") -> None:
         """
-        Convert text to speech
+        Convert text to speech using gTTS and auto-play in Streamlit.
         
         Args:
             text: Text to convert to speech
-            language: Language code ('hi' or 'en')
+            language: Language code ('hi' for Hindi, 'en' for English)
         """
         try:
-            # For Hindi, we use a simple TTS (pyttsx3 has limited Hindi support)
-            if language == "hi":
-                st.info(f"🔊 Playing result in Hindi...")
-            else:
-                st.info(f"🔊 Playing result in English...")
+            from gtts import gTTS
             
-            self.engine.say(text)
-            self.engine.runAndWait()
+            lang_label = "Hindi" if language == "hi" else "English"
+            st.info(f"🔊 Playing result in {lang_label}...")
+            
+            # Generate speech audio in memory
+            tts = gTTS(text=text, lang=language, slow=False)
+            audio_bytes = io.BytesIO()
+            tts.write_to_fp(audio_bytes)
+            audio_bytes.seek(0)
+            
+            # Auto-play in Streamlit
+            st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+            
+        except ImportError:
+            st.error("❌ gTTS is not installed. Run: `pip install gtts`")
         except Exception as e:
             st.error(f"Error in text-to-speech: {e}")
     
@@ -104,31 +111,99 @@ class SymptomExtractor:
     
     SYMPTOMS_MAPPING = {
         # Hindi
-        "खांसी": "Cough",
-        "बुखार": "Fever",
-        "थकान": "Fatigue",
-        "सिरदर्द": "Headache",
-        "जी मचलना": "Nausea",
-        "गला खराब": "Throat Infection",
+        "खांसी": "cough",
+        "बुखार": "fever",
+        "थकान": "fatigue",
+        "सिरदर्द": "headache",
+        "जी मचलना": "nausea",
+        "गला खराब": "throat",
+        "उल्टी": "nausea",
+        "दस्त": "diarrhea",
+        "सांस": "breathlessness",
+        "छाती में दर्द": "chest pain",
+        "जोड़ों में दर्द": "joint pain",
+        "चकत्ते": "rash",
+        "पेट दर्द": "stomach pain",
         
         # English
+        "cough": "cough",
+        "coughing": "cough",
+        "fever": "fever",
+        "temperature": "fever",
+        "fatigue": "fatigue",
+        "tiredness": "fatigue",
+        "tired": "fatigue",
+        "headache": "headache",
+        "head pain": "headache",
+        "nausea": "nausea",
+        "vomiting": "nausea",
+        "throat": "throat",
+        "sore throat": "throat",
+        "cold": "cough",
+        "sick": "fever",
+        "breathlessness": "breathlessness",
+        "breathing": "breathlessness",
+        "shortness of breath": "breathlessness",
+        "wheezing": "wheezing",
+        "diarrhea": "diarrhea",
+        "loose motion": "diarrhea",
+        "rash": "rash",
+        "skin rash": "rash",
+        "joint pain": "joint pain",
+        "body pain": "joint pain",
+        "chest pain": "chest pain",
+        "stomach pain": "stomach pain",
+        "stomach ache": "stomach pain",
+    }
+
+    # Friendly display names for detected symptom keywords
+    DISPLAY_NAMES = {
         "cough": "Cough",
         "fever": "Fever",
         "fatigue": "Fatigue",
         "headache": "Headache",
         "nausea": "Nausea",
         "throat": "Throat Infection",
-        "cold": "Cough",
-        "sick": "Fever"
+        "breathlessness": "Breathlessness",
+        "wheezing": "Wheezing",
+        "diarrhea": "Diarrhea",
+        "rash": "Rash",
+        "joint pain": "Joint Pain",
+        "chest pain": "Chest Pain",
+        "stomach pain": "Stomach Pain",
     }
     
     @classmethod
     def extract(cls, text: str) -> Optional[str]:
-        """Extract symptoms from text"""
+        """Extract first matching symptom from text (legacy)"""
         text_lower = text.lower()
         
         for symptom_text, symptom_label in cls.SYMPTOMS_MAPPING.items():
             if symptom_text.lower() in text_lower:
-                return symptom_label
+                return cls.DISPLAY_NAMES.get(symptom_label, symptom_label)
         
         return None
+
+    @classmethod
+    def extract_all(cls, text: str) -> list:
+        """Extract ALL matching symptoms from text, returning unique keyword labels"""
+        text_lower = text.lower()
+        found = set()
+        
+        for symptom_text, symptom_keyword in cls.SYMPTOMS_MAPPING.items():
+            if symptom_text.lower() in text_lower:
+                found.add(symptom_keyword)
+        
+        return list(found)
+
+    @classmethod
+    def symptom_text(cls, text: str) -> str:
+        """Return a space-separated string of all detected symptom keywords (for ML pipeline)"""
+        keywords = cls.extract_all(text)
+        return " ".join(keywords) if keywords else text
+
+    @classmethod
+    def display_symptoms(cls, text: str) -> list:
+        """Return a list of human-readable symptom names detected in text"""
+        keywords = cls.extract_all(text)
+        return [cls.DISPLAY_NAMES.get(k, k.title()) for k in keywords]

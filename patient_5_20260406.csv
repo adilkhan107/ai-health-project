@@ -1,0 +1,2 @@
+history_id,patient_id,symptoms,diagnosis,temperature,heart_rate,blood_pressure,medicine,notes,visit_date
+10,5,मुझे बहुत तेज का फीवर है और बहुत सर दर्द है,Common Cold,36.5,73,Normal,"Paracetamol, Cetirizine, Nasal drops",,2026-04-06 17:04:13
