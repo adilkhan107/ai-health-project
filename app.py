@@ -42,14 +42,14 @@ def main_app():
     /* SIDEBAR */
     [data-testid="stSidebar"] { background: linear-gradient(180deg, #020810 0%, #060f1e 50%, #040c18 100%) !important; border-right: 1px solid rgba(0,255,200,0.12) !important; }
     [data-testid="stSidebar"] > div:first-child { padding-top: 1.5rem; }
-    [data-testid="stSidebar"] * { color: #94a3b8 !important; }
-    [data-testid="stSidebar"] h1 { color: #e2e8f0 !important; font-size: 1.1rem !important; font-weight: 800 !important; }
+    [data-testid="stSidebar"] * { color: #cbd5e1 !important; }
+    [data-testid="stSidebar"] h1 { color: #f1f5f9 !important; font-size: 1.1rem !important; font-weight: 800 !important; }
     [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 { color: #00ffc8 !important; font-weight: 700 !important; font-size: 0.7rem !important; text-transform: uppercase; letter-spacing: 1.5px; }
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] li { color: #64748b !important; font-size: 0.83rem !important; line-height: 1.7; }
-    [data-testid="stSidebar"] strong { color: #cbd5e1 !important; }
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] li { color: #b0bec5 !important; font-size: 0.87rem !important; line-height: 1.75; }
+    [data-testid="stSidebar"] strong { color: #e2e8f0 !important; }
     [data-testid="stSidebar"] hr { border-color: rgba(0,255,200,0.1) !important; margin: 1rem 0 !important; }
     [data-testid="stSidebar"] .stRadio > div { gap: 2px !important; }
-    [data-testid="stSidebar"] .stRadio > div > label { background: transparent !important; border: none !important; border-radius: 10px !important; padding: 9px 14px !important; font-size: 0.87rem !important; font-weight: 500 !important; color: #64748b !important; transition: all 0.18s ease !important; width: 100% !important; }
+    [data-testid="stSidebar"] .stRadio > div > label { background: transparent !important; border: none !important; border-radius: 10px !important; padding: 9px 14px !important; font-size: 0.87rem !important; font-weight: 500 !important; color: #b0bec5 !important; transition: all 0.18s ease !important; width: 100% !important; }
     [data-testid="stSidebar"] .stRadio > div > label:hover { background: rgba(0,255,200,0.06) !important; color: #00ffc8 !important; }
 
     /* HERO BANNER */
@@ -57,7 +57,7 @@ def main_app():
     .hero-banner::before { content: ''; position: absolute; top: -60px; right: -60px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(0,255,200,0.08) 0%, transparent 70%); border-radius: 50%; }
     .hero-banner::after { content: ''; position: absolute; bottom: -80px; left: 20%; width: 250px; height: 250px; background: radial-gradient(circle, rgba(0,150,255,0.07) 0%, transparent 70%); border-radius: 50%; }
     .hero-title { font-family: 'Space Grotesk', sans-serif !important; font-size: 2.1rem !important; font-weight: 800 !important; background: linear-gradient(90deg, #00ffc8, #00b4ff, #7c3aed) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; margin: 0 0 0.5rem 0 !important; letter-spacing: -0.5px; line-height: 1.2; }
-    .hero-subtitle { font-size: 0.92rem !important; color: #64748b !important; margin: 0 !important; font-weight: 400; line-height: 1.6; }
+    .hero-subtitle { font-size: 0.92rem !important; color: #94a3b8 !important; margin: 0 !important; font-weight: 400; line-height: 1.6; }
     .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,255,200,0.08); border: 1px solid rgba(0,255,200,0.3); border-radius: 20px; padding: 4px 14px; font-size: 0.75rem; font-weight: 700; color: #00ffc8 !important; margin-bottom: 1rem; letter-spacing: 0.5px; text-transform: uppercase; }
     .disclaimer-bar { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); border-radius: 10px; padding: 10px 16px; font-size: 0.82rem; color: #fbbf24 !important; margin-bottom: 1.5rem; }
 
@@ -69,9 +69,9 @@ def main_app():
 
     /* HEADINGS */
     h1 { color: #e2e8f0 !important; font-weight: 800 !important; }
-    h2 { color: #cbd5e1 !important; font-weight: 700 !important; font-size: 1.25rem !important; }
-    h3 { color: #94a3b8 !important; font-weight: 600 !important; font-size: 1rem !important; }
-    p, li, span { color: #94a3b8; }
+    h2 { color: #e2e8f0 !important; font-weight: 700 !important; font-size: 1.25rem !important; }
+    h3 { color: #b0bec5 !important; font-weight: 600 !important; font-size: 1rem !important; }
+    p, li, span { color: #b0bec5; }
 
         background: rgba(0,255,200,0.05) !important;
     }
