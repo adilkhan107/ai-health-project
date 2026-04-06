@@ -10,8 +10,8 @@ from streamlit_folium import st_folium
 from geopy.distance import geodesic
 
 # Import new feature modules
-from server.features.voice_input import VoiceInput, SymptomExtractor
-from server.features.doctor_finder import DoctorFinder, SpecialtyMatcher
+from features.voice_input import VoiceInput, SymptomExtractor
+from features.doctor_finder import DoctorFinder, SpecialtyMatcher
 from database.patient_history import PatientHistoryDB
 
 # Main app content (only shown if logged in)
@@ -701,7 +701,6 @@ with tab4:
                 st.error(f"Error exporting history: {e}")
 
 # ===== TAB 5: AI Medical Advisor =====
-# This feature has been removed.
 with tab5:
     st.header("🤖 AI Medical Advisor")
     st.info("This feature has been removed from the application.")

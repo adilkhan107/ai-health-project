@@ -3,7 +3,7 @@
 # Get your API key from: https://platform.openai.com/api-keys
 
 # 🔑 REPLACE THIS WITH YOUR ACTUAL OPENAI API KEY 🔑
-OPENAI_API_KEY = "sk-your-actual-openai-api-key-here"  # <-- REPLACE THIS LINE
+OPENAI_API_KEY = "AIzaSyCIXa6I53FtZLWjpiDq5-tXi4VyK7Q7LwY"  # <-- REPLACE THIS LINE
 
 # Example of what a real API key looks like:
 # OPENAI_API_KEY = "sk-proj-ABC123def456ghi789jkl012mno345pqr678stu901vwx234yz"
