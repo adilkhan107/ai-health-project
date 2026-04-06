@@ -1,0 +1,11 @@
+Age,Gender,Temperature,Heart_Rate,Blood_Pressure,Symptoms
+25,Male,38.5,92,Normal,fever and cough
+45,Female,37.2,78,High,headache and fatigue
+32,Male,37.0,88,Normal,sore throat and sneezing
+55,Female,39.1,105,High,fever and breathlessness and chest pain
+28,Male,36.8,72,Low,nausea and vomiting and diarrhea
+38,Female,37.5,95,Normal,cough and weakness and fatigue
+42,Male,38.2,100,High,fever and joint pain and muscle ache
+33,Female,37.1,80,Normal,runny nose and sneezing
+50,Male,38.8,110,High,breathlessness and wheezing and chest
+29,Female,37.0,85,Normal,stomach ache and abdominal pain

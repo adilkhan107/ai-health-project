@@ -218,7 +218,7 @@ def main_app():
 """, unsafe_allow_html=True)
 
 st.set_page_config(
-    page_title="🏥 Rural Healthcare Predictor",
+    page_title="🏥 Early Diagnosis Predictor",
     page_icon="🏥",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -227,7 +227,7 @@ st.set_page_config(
 # Sidebar
 with st.sidebar:
     st.image("https://img.icons8.com/color/96/000000/hospital.png", width=80)
-    st.title("🏥 Rural Healthcare")
+    st.title("🏥Early Diagnosis Predictor ")
     st.markdown("---")
     st.markdown("**Navigation:**")
     st.markdown("- 💊 Single Prediction (ML)")
@@ -239,7 +239,7 @@ with st.sidebar:
     st.markdown("- 💉 Medicine Guide")
     st.markdown("---")
     st.markdown("**About:**")
-    st.markdown("AI-powered healthcare diagnosis for rural areas. Get predictions, medicine suggestions, and locate nearby doctors.")
+    st.markdown("AI-powered healthcare diagnosis for early disease detection. Get predictions, medicine suggestions, and locate nearby doctors.")
     st.markdown("**⚠️ Disclaimer:** For educational use only. Consult professionals for real medical advice.")
 
 import json
@@ -296,11 +296,11 @@ doctors_data = [
     {"name": "Dr. Priya Singh", "type": "Pediatrician", "lat": 28.5244, "lon": 77.1855, "phone": "+91-9876543211", "address": "456 Medical Road, Noida"},
     {"name": "City Hospital", "type": "Hospital", "lat": 28.6139, "lon": 77.2090, "phone": "+91-9876543212", "address": "789 Health Ave, Greater Noida"},
     {"name": "Dr. Amit Patel", "type": "Cardiologist", "lat": 28.4595, "lon": 77.0266, "phone": "+91-9876543213", "address": "101 Heart Care Lane, Gurgaon"},
-    {"name": "Rural Clinic", "type": "Health Center", "lat": 28.5355, "lon": 77.3910, "phone": "+91-9876543214", "address": "202 Village Road, Ghaziabad"},
+    {"name": "Community Health Center", "type": "Health Center", "lat": 28.5355, "lon": 77.3910, "phone": "+91-9876543214", "address": "202 Village Road, Ghaziabad"},
     {"name": "Dr. Neha Gupta", "type": "Gynecologist", "lat": 28.7589, "lon": 77.0266, "phone": "+91-9876543215", "address": "303 Women's Health Clinic, Gurgaon"},
 ]
 
-st.title("🏥 Rural Healthcare Diagnosis Predictor")
+st.title("🏥 Early Diagnosis Predictor")
 st.markdown('<div class="card"><p style="text-align: center; font-size: 18px; color: #666;">🌟 <strong>Empowering Rural Healthcare with AI</strong> 🌟</p></div>', unsafe_allow_html=True)
 st.markdown("**⚠️ Disclaimer:** This is a demo app for educational purposes. Consult a healthcare professional for real medical advice.")
 
@@ -326,7 +326,6 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "📊 Batch Prediction",
     "🎤 Voice Input",
     "📋 Health History",
-    "🤖 AI Advisor",
     "📈 Model Insights",
     "🗺️ Find Doctors",
     "💉 Medicine Guide"

@@ -12,7 +12,7 @@ from geopy.distance import geodesic
 # Import new feature modules
 from server.features.voice_input import VoiceInput, SymptomExtractor
 from server.features.doctor_finder import DoctorFinder, SpecialtyMatcher
-from database.patient_history import PatientHistoryDB
+from server.database.patient_history import PatientHistoryDB
 
 # Main app content (only shown if logged in)
 def main_app():
@@ -218,7 +218,7 @@ def main_app():
 """, unsafe_allow_html=True)
 
 st.set_page_config(
-    page_title="🏥 Rural Healthcare Predictor",
+    page_title="🏥 Early Disease Prediction",
     page_icon="🏥",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -227,7 +227,7 @@ st.set_page_config(
 # Sidebar
 with st.sidebar:
     st.image("https://img.icons8.com/color/96/000000/hospital.png", width=80)
-    st.title("🏥 Rural Healthcare")
+    st.title("🏥 Early ")
     st.markdown("---")
     st.markdown("**Navigation:**")
     st.markdown("- 💊 Single Prediction (ML)")
@@ -239,7 +239,7 @@ with st.sidebar:
     st.markdown("- 💉 Medicine Guide")
     st.markdown("---")
     st.markdown("**About:**")
-    st.markdown("AI-powered healthcare diagnosis for rural areas. Get predictions, medicine suggestions, and locate nearby doctors.")
+    st.markdown("AI-powered healthcare diagnosis for early disease detection. Get predictions, medicine suggestions, and locate nearby doctors.")
     st.markdown("**⚠️ Disclaimer:** For educational use only. Consult professionals for real medical advice.")
 
 import json
@@ -249,7 +249,7 @@ BASE_DIR = os.path.dirname(__file__)
 # Load the trained model
 @st.cache_resource
 def load_model():
-    model_path = os.path.join(BASE_DIR, 'model', 'final_pipeline.joblib')
+    model_path = os.path.join(BASE_DIR, 'server', 'model', 'final_pipeline.joblib')
     try:
         return joblib.load(model_path)
     except FileNotFoundError:
@@ -262,7 +262,7 @@ def load_model():
 # Load training metadata (feature order, raw columns, etc.)
 @st.cache_resource
 def load_training_info():
-    info_path = os.path.join(BASE_DIR, 'model', 'training_artifacts_info.json')
+    info_path = os.path.join(BASE_DIR, 'server', 'model', 'training_artifacts_info.json')
     try:
         with open(info_path, 'r', encoding='utf-8') as f:
             return json.load(f)
@@ -296,12 +296,12 @@ doctors_data = [
     {"name": "Dr. Priya Singh", "type": "Pediatrician", "lat": 28.5244, "lon": 77.1855, "phone": "+91-9876543211", "address": "456 Medical Road, Noida"},
     {"name": "City Hospital", "type": "Hospital", "lat": 28.6139, "lon": 77.2090, "phone": "+91-9876543212", "address": "789 Health Ave, Greater Noida"},
     {"name": "Dr. Amit Patel", "type": "Cardiologist", "lat": 28.4595, "lon": 77.0266, "phone": "+91-9876543213", "address": "101 Heart Care Lane, Gurgaon"},
-    {"name": "Rural Clinic", "type": "Health Center", "lat": 28.5355, "lon": 77.3910, "phone": "+91-9876543214", "address": "202 Village Road, Ghaziabad"},
+    {"name": "Community Health Center", "type": "Health Center", "lat": 28.5355, "lon": 77.3910, "phone": "+91-9876543214", "address": "202 Village Road, Ghaziabad"},
     {"name": "Dr. Neha Gupta", "type": "Gynecologist", "lat": 28.7589, "lon": 77.0266, "phone": "+91-9876543215", "address": "303 Women's Health Clinic, Gurgaon"},
 ]
 
-st.title("🏥 Rural Healthcare Diagnosis Predictor")
-st.markdown('<div class="card"><p style="text-align: center; font-size: 18px; color: #666;">🌟 <strong>Empowering Rural Healthcare with AI</strong> 🌟</p></div>', unsafe_allow_html=True)
+st.title("🏥 Early Disease Prediction System")
+st.markdown('<div class="card"><p style="text-align: center; font-size: 18px; color: #666;">🌟 <strong>AI-Powered Early Disease Detection & Diagnosis</strong> 🌟</p></div>', unsafe_allow_html=True)
 st.markdown("**⚠️ Disclaimer:** This is a demo app for educational purposes. Consult a healthcare professional for real medical advice.")
 
 # Load the pipeline
@@ -321,12 +321,10 @@ db = PatientHistoryDB()
 voice = VoiceInput()
 
 # Tabs with creative icons
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "💊 Single Prediction",
-    "📊 Batch Prediction",
     "🎤 Voice Input",
     "📋 Health History",
-    "🤖 AI Advisor",
     "📈 Model Insights",
     "🗺️ Find Doctors",
     "💉 Medicine Guide"
@@ -370,31 +368,54 @@ with tab1:
     elif st.button("🔍 Predict Diagnosis & Medicine", key="predict_btn"):
         with st.spinner("🔄 Analyzing patient data..."):
             try:
-                numeric_cols_t = TRAIN_INFO.get('numeric_cols', ['Age', 'Temperature', 'Heart_Rate'])
-                cat_cols_t     = TRAIN_INFO.get('categorical_cols', ['Gender', 'Blood_Pressure', 'Symptoms'])
-                feature_order  = TRAIN_INFO.get('feature_columns', numeric_cols_t + cat_cols_t)
-
-                raw = {'Patient_ID': 0, 'Age': age, 'Temperature': temperature, 'Heart_Rate': heart_rate,
-                       'Gender': gender, 'Blood_Pressure': blood_pressure, 'Symptoms': symptoms}
-                # use all columns the preprocessor knows about
-                all_prep_cols = ['Patient_ID', 'Age', 'Temperature', 'Heart_Rate', 'Gender', 'Blood_Pressure', 'Symptoms']
-                input_data = pd.DataFrame([raw])[all_prep_cols]
-
-                cat_encoders = pipeline.get('cat_encoders', {}) or {}
-                for col, le in cat_encoders.items():
-                    if col in input_data.columns:
-                        val = str(input_data.at[0, col])
-                        mapping = {c: i for i, c in enumerate(le.classes_)}
-                        input_data[col] = mapping.get(val, -1)
-
+                # Get training info
+                feature_order  = TRAIN_INFO.get('feature_columns', ['Age', 'Gender', 'Temperature', 'Heart_Rate', 'Blood_Pressure', 'Symptom_Score'])
+                numeric_cols   = TRAIN_INFO.get('numeric_cols', feature_order)
+                symptom_keywords = TRAIN_INFO.get('symptom_keywords', {})
+                
+                # Calculate Symptom_Score from symptoms text
+                symptoms_lower = symptoms.lower()
+                symptom_score = 0
+                for keyword, score_val in symptom_keywords.items():
+                    if keyword in symptoms_lower:
+                        symptom_score += score_val
+                
+                # Encode gender: Male=0, Female=1
+                gender_encoded = 0 if gender == 'Male' else 1
+                
+                # Encode Blood_Pressure: Low=0, Normal=1, High=2
+                bp_mapping = {'Low': 0, 'Normal': 1, 'High': 2}
+                bp_encoded = bp_mapping.get(blood_pressure, 1)  # Default to Normal if unknown
+                
+                # Create input data in the exact order of feature_columns (all numeric)
+                raw = {
+                    'Age': float(age), 
+                    'Gender': float(gender_encoded), 
+                    'Temperature': float(temperature), 
+                    'Heart_Rate': float(heart_rate),
+                    'Blood_Pressure': float(bp_encoded), 
+                    'Symptom_Score': float(symptom_score)
+                }
+                # Create DataFrame with columns in training order
+                input_data = pd.DataFrame([raw])[feature_order]
+                
+                # Apply preprocessor to scale features
                 preprocessor = pipeline.get('preprocessor')
-                if preprocessor is None:
-                    raise ValueError("Model preprocessor not found.")
+                if preprocessor is not None:
+                    try:
+                        # Transform using the preprocessor
+                        processed = preprocessor.transform(input_data)
+                        # Ensure it's a 2D array and convert to DataFrame
+                        if hasattr(processed, 'toarray'):  # sparse matrix
+                            processed = processed.toarray()
+                        processed_df = pd.DataFrame(processed, columns=feature_order)
+                    except Exception as e:
+                        st.warning(f"Preprocessing failed, using raw data: {e}")
+                        processed_df = input_data
+                else:
+                    processed_df = input_data
 
-                processed    = preprocessor.transform(input_data)
-                proc_cols    = FEATURE_COLUMNS if FEATURE_COLUMNS else feature_order
-                processed_df = pd.DataFrame(processed, columns=proc_cols)
-
+                # Make prediction using the pipeline
                 raw_pred = pipeline['pipeline'].predict(processed_df)[0]
 
                 # decode numeric label → disease name
@@ -494,83 +515,8 @@ with tab1:
                 import traceback
                 st.code(traceback.format_exc())
 
-# ===== TAB 2: Batch Prediction =====
+# ===== TAB 2: Voice Input =====
 with tab2:
-    st.header("📊 Batch Prediction")
-    st.markdown('<div class="card">Upload a CSV file with patient data for multiple predictions at once.</div>', unsafe_allow_html=True)
-    
-    uploaded_file = st.file_uploader("📁 Choose a CSV file", type="csv")
-    
-    if not MODEL_AVAILABLE:
-        st.warning("Batch prediction is disabled because the model file is unavailable.")
-    elif uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("📋 Uploaded Data Preview")
-        st.dataframe(df.head(), use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        if st.button("🚀 Run Batch Prediction", key="batch_predict_btn"):
-            with st.spinner("🔄 Processing batch predictions..."):
-                try:
-                    required_cols = ['Age', 'Gender', 'Temperature', 'Heart_Rate', 'Blood_Pressure', 'Symptoms']
-                    missing_cols = [col for col in required_cols if col not in df.columns]
-
-                    if missing_cols:
-                        st.error(f"❌ Missing columns: {', '.join(missing_cols)}")
-                    else:
-                        # Preprocessor needs Patient_ID — add it if missing
-                        if 'Patient_ID' not in df.columns:
-                            df['Patient_ID'] = range(1, len(df) + 1)
-                        df['Patient_ID'] = pd.to_numeric(df['Patient_ID'], errors='coerce').fillna(0).astype(int)
-
-                        all_prep_cols = ['Patient_ID', 'Age', 'Temperature', 'Heart_Rate', 'Gender', 'Blood_Pressure', 'Symptoms']
-                        df_raw = df[[c for c in all_prep_cols if c in df.columns]].copy()
-
-                        # Apply label encoders to categorical columns
-                        cat_encoders = pipeline.get('cat_encoders', {}) or {}
-                        for col, le in cat_encoders.items():
-                            if col in df_raw.columns:
-                                vals = df_raw[col].astype(str)
-                                mapping = {c: i for i, c in enumerate(le.classes_)}
-                                df_raw[col] = vals.map(mapping).fillna(-1).astype(int)
-
-                        preprocessor = pipeline.get('preprocessor')
-                        if preprocessor is None:
-                            st.error("Model preprocessor not found in saved pipeline.")
-                            st.stop()
-
-                        processed = preprocessor.transform(df_raw)
-                        proc_cols = FEATURE_COLUMNS if FEATURE_COLUMNS else all_prep_cols
-                        df_processed = pd.DataFrame(processed, columns=proc_cols)
-
-                        raw_preds = pipeline['pipeline'].predict(df_processed)
-
-                        # decode numeric labels → disease names
-                        target_enc = pipeline.get('target_encoder')
-                        if target_enc is not None and not isinstance(raw_preds[0], str):
-                            predictions = target_enc.inverse_transform([int(p) for p in raw_preds])
-                        else:
-                            predictions = raw_preds
-
-                        df['Predicted_Diagnosis'] = predictions
-                        df['Suggested_Medicine'] = df['Predicted_Diagnosis'].map(medicine_mapping).fillna("Consult a doctor")
-
-                        st.success("✅ Predictions completed!")
-                        st.markdown('<div class="card">', unsafe_allow_html=True)
-                        st.subheader("📊 Prediction Results")
-                        show_cols = [c for c in ['Patient_ID', 'Age', 'Predicted_Diagnosis', 'Suggested_Medicine'] if c in df.columns]
-                        st.dataframe(df[show_cols], use_container_width=True)
-                        st.markdown('</div>', unsafe_allow_html=True)
-
-                        # Download results
-                        csv = df.to_csv(index=False)
-                        st.download_button("📥 Download Predictions CSV", csv, "predictions.csv", "text/csv", key="download_btn")
-                except Exception as e:
-                    st.error(f"❌ Batch prediction failed: {e}")
-
-# ===== TAB 3: Voice Input =====
-with tab3:
     st.header("🎤 Voice Input Diagnosis")
     st.markdown('<div class="card">Speak your symptoms in Hindi or English for instant diagnosis.</div>', unsafe_allow_html=True)
     
@@ -596,8 +542,8 @@ with tab3:
                 st.error(f"Error during voice recording: {e}")
                 st.info("💡 Make sure your microphone is connected and working properly.")
 
-# ===== TAB 4: Health History =====
-with tab4:
+# ===== TAB 3: Health History =====
+with tab3:
     st.header("📋 Health History & Patient Records")
     st.markdown('<div class="card">View and manage patient medical history for informed diagnosis.</div>', unsafe_allow_html=True)
     
@@ -700,15 +646,8 @@ with tab4:
             except Exception as e:
                 st.error(f"Error exporting history: {e}")
 
-# ===== TAB 5: AI Medical Advisor =====
-# This feature has been removed.
-with tab5:
-    st.header("🤖 AI Medical Advisor")
-    st.info("This feature has been removed from the application.")
-
-
-# ===== TAB 6: Model Insights =====
-with tab6:
+# ===== TAB 4: Model Insights =====
+with tab4:
     st.header("📈 Model Insights")
     st.markdown('<div class="card">Explore model information, feature importance, and available diagnoses.</div>', unsafe_allow_html=True)
     
@@ -775,8 +714,8 @@ with tab6:
         st.write(f"• **{diagnosis}:** {medicine}")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ===== TAB 7: Find Nearby Doctors =====
-with tab7:
+# ===== TAB 5: Find Nearby Doctors =====
+with tab5:
     import requests as _requests
     from streamlit_geolocation import streamlit_geolocation
 
@@ -962,8 +901,8 @@ with tab7:
     elif "real_doctors_result" in st.session_state:
         st.warning("⚠️ No healthcare providers found in this area. Try increasing the radius.")
 
-# ===== TAB 8: Medicine Guide =====
-with tab8:
+# ===== TAB 6: Medicine Guide =====
+with tab6:
     st.header("💉 Medicine & Treatment Guide")
     st.markdown('<div class="card">Complete reference guide for medicines suggested by the AI model.</div>', unsafe_allow_html=True)
     

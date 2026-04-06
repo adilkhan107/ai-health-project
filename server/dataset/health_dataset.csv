@@ -1,11 +1,101 @@
 Patient_ID,Age,Gender,Temperature,Heart_Rate,Blood_Pressure,Symptoms,Diagnosis,Medicine_Advice
-1,25,Male,98.6,72,120/80,"Fever, cough, headache",Common Cold,"Rest, hydration, paracetamol"
-2,40,Female,101.2,90,140/90,"High fever, sore throat, tiredness",Viral Fever,"Paracetamol, fluids, rest"
-3,60,Male,100.4,85,130/85,"Chest pain, cough, breathlessness",Pneumonia,"Antibiotics, steam inhalation"
-4,35,Female,97.5,70,110/70,"Fatigue, mild cough",Flu,"Rest, warm fluids, vitamin C"
-5,50,Male,102.0,95,145/95,"Fever, vomiting, stomach pain",Food Poisoning,"ORS, antibiotics, avoid oily food"
-6,28,Female,98.7,80,118/78,"Body ache, weakness",Dengue (Mild),"Hydration, paracetamol, rest"
-7,70,Male,99.1,88,135/88,"Shortness of breath, cough",Bronchitis,"Antibiotics, inhaler, warm fluids"
-8,45,Female,100.2,78,125/82,"Headache, mild fever",Flu,"Rest, fluids, light diet"
-9,55,Male,98.4,75,128/84,"Tiredness, loss of appetite",Fatigue,"Rest, iron-rich food"
-10,38,Female,97.9,73,115/75,"Sore throat, fatigue",Throat Infection,"Salt water gargle, rest"
+1,25,Male,98.6,72,Normal,Fever cough headache,Common Cold,Rest hydration paracetamol
+2,40,Female,101.2,90,High,High fever sore throat tiredness,Viral Fever,Paracetamol fluids rest
+3,60,Male,100.4,85,Normal,Chest pain cough breathlessness,Pneumonia,Antibiotics steam inhalation
+4,35,Female,97.5,70,Normal,Fatigue mild cough,Flu,Rest warm fluids vitamin C
+5,28,Male,99.1,78,Normal,Runny nose sneezing mild fever,Common Cold,Rest hydration paracetamol
+6,45,Female,102.3,95,High,High fever body ache chills,Viral Fever,Paracetamol fluids rest
+7,55,Male,101.0,88,Normal,Cough with phlegm breathlessness chest pain,Pneumonia,Antibiotics steam inhalation
+8,30,Female,98.2,68,Normal,Mild fever fatigue muscle ache,Flu,Rest warm fluids vitamin C
+9,22,Male,98.4,74,Normal,Sore throat runny nose sneezing,Common Cold,Rest hydration paracetamol
+10,50,Female,103.1,98,High,Very high fever weakness sweating,Viral Fever,Paracetamol fluids rest
+11,65,Male,102.5,92,High,Severe cough fever difficulty breathing,Pneumonia,Antibiotics steam inhalation
+12,38,Female,99.0,75,Normal,Headache mild fever body pain,Flu,Rest warm fluids vitamin C
+13,20,Male,98.0,70,Normal,Nasal congestion mild headache sneezing,Common Cold,Rest hydration paracetamol
+14,42,Female,101.8,93,High,Fever fatigue loss of appetite,Viral Fever,Paracetamol fluids rest
+15,58,Male,100.8,87,Normal,Productive cough fever chest tightness,Pneumonia,Antibiotics steam inhalation
+16,33,Female,98.6,72,Normal,Mild cough runny nose fatigue,Flu,Rest warm fluids vitamin C
+17,27,Male,97.8,69,Normal,Sneezing watery eyes mild sore throat,Common Cold,Rest hydration paracetamol
+18,48,Female,102.0,91,High,High fever headache joint pain,Viral Fever,Paracetamol fluids rest
+19,62,Male,101.5,89,High,Cough fever rapid breathing,Pneumonia,Antibiotics steam inhalation
+20,36,Female,99.2,76,Normal,Fatigue mild fever muscle weakness,Flu,Rest warm fluids vitamin C
+21,24,Male,98.3,71,Normal,Runny nose mild cough sore throat,Common Cold,Rest hydration paracetamol
+22,52,Female,103.5,100,High,Very high fever chills body ache,Viral Fever,Paracetamol fluids rest
+23,67,Male,102.0,90,High,Breathlessness cough fever,Pneumonia,Antibiotics steam inhalation
+24,31,Female,98.8,73,Normal,Mild fever headache fatigue,Flu,Rest warm fluids vitamin C
+25,26,Male,97.9,68,Normal,Nasal drip sneezing mild headache,Common Cold,Rest hydration paracetamol
+26,44,Female,101.5,92,High,Fever weakness loss of appetite,Viral Fever,Paracetamol fluids rest
+27,57,Male,101.2,88,Normal,Chest pain cough fever,Pneumonia,Antibiotics steam inhalation
+28,39,Female,99.5,77,Normal,Body ache mild fever fatigue,Flu,Rest warm fluids vitamin C
+29,23,Male,98.1,70,Normal,Sore throat sneezing runny nose,Common Cold,Rest hydration paracetamol
+30,46,Female,102.8,96,High,High fever sweating weakness,Viral Fever,Paracetamol fluids rest
+31,32,Male,99.8,80,Normal,Nausea vomiting stomach cramps,Food Poisoning,ORS antibiotics avoid oily food
+32,29,Female,100.2,82,Normal,Diarrhea stomach pain nausea,Food Poisoning,ORS antibiotics avoid oily food
+33,41,Male,99.5,79,Normal,Vomiting loose stools abdominal pain,Food Poisoning,ORS antibiotics avoid oily food
+34,37,Female,100.0,81,Normal,Stomach cramps nausea diarrhea,Food Poisoning,ORS antibiotics avoid oily food
+35,25,Male,99.3,78,Normal,Food poisoning symptoms vomiting,Food Poisoning,ORS antibiotics avoid oily food
+36,53,Female,100.5,83,Normal,Severe stomach pain loose stools,Food Poisoning,ORS antibiotics avoid oily food
+37,34,Male,99.7,80,Normal,Nausea vomiting weakness after eating,Food Poisoning,ORS antibiotics avoid oily food
+38,28,Female,100.1,82,Normal,Diarrhea cramps mild fever,Food Poisoning,ORS antibiotics avoid oily food
+39,47,Male,99.4,79,Normal,Stomach upset vomiting dehydration,Food Poisoning,ORS antibiotics avoid oily food
+40,22,Female,100.3,81,Normal,Loose stools nausea abdominal pain,Food Poisoning,ORS antibiotics avoid oily food
+41,30,Male,103.0,105,Normal,High fever severe headache rash,Dengue (Mild),Hydration paracetamol rest
+42,35,Female,102.5,100,Normal,Fever joint pain muscle pain,Dengue (Mild),Hydration paracetamol rest
+43,27,Male,103.5,108,Normal,High fever eye pain rash,Dengue (Mild),Hydration paracetamol rest
+44,42,Female,102.0,98,Normal,Fever fatigue bleeding gums,Dengue (Mild),Hydration paracetamol rest
+45,38,Male,103.2,106,Normal,Severe headache fever joint ache,Dengue (Mild),Hydration paracetamol rest
+46,25,Female,102.8,102,Normal,Rash fever muscle pain,Dengue (Mild),Hydration paracetamol rest
+47,33,Male,103.8,110,Normal,High fever nausea severe headache,Dengue (Mild),Hydration paracetamol rest
+48,29,Female,102.3,99,Normal,Fever joint pain fatigue,Dengue (Mild),Hydration paracetamol rest
+49,45,Male,103.1,104,Normal,Fever rash eye redness,Dengue (Mild),Hydration paracetamol rest
+50,31,Female,102.6,101,Normal,Muscle ache fever headache,Dengue (Mild),Hydration paracetamol rest
+51,40,Male,99.5,80,Normal,Chronic cough mucus mild fever,Bronchitis,Antibiotics inhaler warm fluids
+52,55,Female,100.0,85,Normal,Cough with phlegm chest discomfort,Bronchitis,Antibiotics inhaler warm fluids
+53,48,Male,99.8,82,Normal,Persistent cough wheezing fatigue,Bronchitis,Antibiotics inhaler warm fluids
+54,36,Female,100.2,84,Normal,Cough shortness of breath chest tightness,Bronchitis,Antibiotics inhaler warm fluids
+55,52,Male,99.6,81,Normal,Mucus cough mild fever fatigue,Bronchitis,Antibiotics inhaler warm fluids
+56,44,Female,100.4,86,Normal,Wheezing cough chest pain,Bronchitis,Antibiotics inhaler warm fluids
+57,39,Male,99.3,79,Normal,Persistent cough breathlessness,Bronchitis,Antibiotics inhaler warm fluids
+58,61,Female,100.1,83,Normal,Cough with yellow mucus fatigue,Bronchitis,Antibiotics inhaler warm fluids
+59,43,Male,99.7,80,Normal,Chest tightness cough mild fever,Bronchitis,Antibiotics inhaler warm fluids
+60,50,Female,100.3,85,Normal,Wheezing shortness of breath cough,Bronchitis,Antibiotics inhaler warm fluids
+61,35,Male,97.5,65,Low,Extreme tiredness weakness dizziness,Fatigue,Rest iron-rich food
+62,28,Female,97.8,67,Low,Fatigue pale skin shortness of breath,Fatigue,Rest iron-rich food
+63,45,Male,97.6,64,Low,Chronic fatigue weakness headache,Fatigue,Rest iron-rich food
+64,32,Female,97.4,66,Low,Tiredness lack of energy dizziness,Fatigue,Rest iron-rich food
+65,50,Male,97.7,65,Low,Fatigue muscle weakness poor concentration,Fatigue,Rest iron-rich food
+66,27,Female,97.5,67,Low,Extreme tiredness pale skin fatigue,Fatigue,Rest iron-rich food
+67,42,Male,97.3,64,Low,Weakness fatigue shortness of breath,Fatigue,Rest iron-rich food
+68,38,Female,97.6,66,Low,Dizziness fatigue lack of energy,Fatigue,Rest iron-rich food
+69,55,Male,97.8,65,Low,Chronic tiredness weakness headache,Fatigue,Rest iron-rich food
+70,30,Female,97.4,67,Low,Fatigue poor concentration weakness,Fatigue,Rest iron-rich food
+71,26,Male,99.0,76,Normal,Sore throat difficulty swallowing fever,Throat Infection,Salt water gargle rest
+72,34,Female,99.5,78,Normal,Throat pain swollen tonsils fever,Throat Infection,Salt water gargle rest
+73,41,Male,99.2,77,Normal,Sore throat hoarse voice mild fever,Throat Infection,Salt water gargle rest
+74,29,Female,99.8,79,Normal,Throat irritation pain difficulty eating,Throat Infection,Salt water gargle rest
+75,48,Male,99.1,76,Normal,Swollen throat fever pain,Throat Infection,Salt water gargle rest
+76,23,Female,99.4,78,Normal,Sore throat runny nose mild fever,Throat Infection,Salt water gargle rest
+77,37,Male,99.6,77,Normal,Throat pain cough mild fever,Throat Infection,Salt water gargle rest
+78,53,Female,99.3,79,Normal,Difficulty swallowing sore throat,Throat Infection,Salt water gargle rest
+79,31,Male,99.7,76,Normal,Hoarse voice throat pain fever,Throat Infection,Salt water gargle rest
+80,44,Female,99.0,78,Normal,Throat irritation swollen glands fever,Throat Infection,Salt water gargle rest
+81,24,Male,98.5,72,Normal,Runny nose sneezing watery eyes,Common Cold,Rest hydration paracetamol
+82,49,Female,101.9,94,High,Fever chills body ache,Viral Fever,Paracetamol fluids rest
+83,63,Male,101.8,91,High,Cough fever chest pain,Pneumonia,Antibiotics steam inhalation
+84,36,Female,98.7,74,Normal,Mild fever fatigue runny nose,Flu,Rest warm fluids vitamin C
+85,28,Male,99.6,80,Normal,Stomach pain vomiting diarrhea,Food Poisoning,ORS antibiotics avoid oily food
+86,32,Female,103.4,107,Normal,High fever rash joint pain,Dengue (Mild),Hydration paracetamol rest
+87,46,Male,99.9,83,Normal,Persistent cough wheezing,Bronchitis,Antibiotics inhaler warm fluids
+88,40,Female,97.6,66,Low,Extreme tiredness weakness,Fatigue,Rest iron-rich food
+89,25,Male,99.3,77,Normal,Sore throat fever pain,Throat Infection,Salt water gargle rest
+90,55,Female,102.2,96,High,High fever weakness sweating,Viral Fever,Paracetamol fluids rest
+91,21,Male,98.2,71,Normal,Sneezing mild cough nasal congestion,Common Cold,Rest hydration paracetamol
+92,43,Female,100.6,86,Normal,Cough breathlessness chest tightness,Bronchitis,Antibiotics inhaler warm fluids
+93,59,Male,101.3,89,Normal,Fever cough difficulty breathing,Pneumonia,Antibiotics steam inhalation
+94,34,Female,98.9,75,Normal,Body ache mild fever fatigue,Flu,Rest warm fluids vitamin C
+95,30,Male,99.2,79,Normal,Nausea loose stools stomach cramps,Food Poisoning,ORS antibiotics avoid oily food
+96,27,Female,103.0,103,Normal,Fever severe headache muscle pain,Dengue (Mild),Hydration paracetamol rest
+97,38,Male,97.5,65,Low,Fatigue dizziness weakness,Fatigue,Rest iron-rich food
+98,22,Female,99.5,78,Normal,Throat pain swollen tonsils,Throat Infection,Salt water gargle rest
+99,51,Male,102.7,97,High,High fever chills body pain,Viral Fever,Paracetamol fluids rest
+100,66,Female,101.6,90,High,Cough fever breathlessness,Pneumonia,Antibiotics steam inhalation

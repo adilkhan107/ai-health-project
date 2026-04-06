@@ -1,22 +1,21 @@
 {
   "feature_columns": [
     "Age",
+    "Gender",
     "Temperature",
     "Heart_Rate",
-    "Gender",
     "Blood_Pressure",
-    "Symptoms"
+    "Symptom_Score"
   ],
   "numeric_cols": [
     "Age",
-    "Temperature",
-    "Heart_Rate"
-  ],
-  "categorical_cols": [
     "Gender",
+    "Temperature",
+    "Heart_Rate",
     "Blood_Pressure",
-    "Symptoms"
+    "Symptom_Score"
   ],
+  "categorical_cols": [],
   "text_cols": [],
   "target_classes": [
     "Bronchitis",
@@ -28,5 +27,32 @@
     "Pneumonia",
     "Throat Infection",
     "Viral Fever"
-  ]
+  ],
+  "symptom_keywords": {
+    "fever": 1,
+    "cough": 2,
+    "headache": 3,
+    "fatigue": 4,
+    "nausea": 5,
+    "vomiting": 6,
+    "diarrhea": 7,
+    "rash": 8,
+    "breathlessness": 9,
+    "chest": 10,
+    "throat": 11,
+    "sneezing": 12,
+    "runny": 13,
+    "weakness": 14,
+    "dizziness": 15,
+    "joint": 16,
+    "muscle": 17,
+    "stomach": 18,
+    "abdominal": 19,
+    "wheezing": 20,
+    "phlegm": 21,
+    "tiredness": 22,
+    "pale": 23,
+    "swollen": 24,
+    "hoarse": 25
+  }
 }

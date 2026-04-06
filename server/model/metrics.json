@@ -1,43 +1,74 @@
 {
-  "accuracy": 0.0,
-  "roc_auc": null,
+  "accuracy": 0.75,
+  "roc_auc": 0.96875,
+  "cv_mean": 0.9,
   "classification_report": {
-    "3": {
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1-score": 0.0,
-      "support": 1.0
+    "Bronchitis": {
+      "precision": 0.5,
+      "recall": 0.3333333333333333,
+      "f1-score": 0.4,
+      "support": 3.0
     },
-    "5": {
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1-score": 0.0,
-      "support": 0.0
-    },
-    "7": {
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1-score": 0.0,
-      "support": 0.0
-    },
-    "8": {
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1-score": 0.0,
-      "support": 1.0
-    },
-    "accuracy": 0.0,
-    "macro avg": {
+    "Common Cold": {
       "precision": 0.0,
       "recall": 0.0,
       "f1-score": 0.0,
       "support": 2.0
+    },
+    "Dengue (Mild)": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2.0
+    },
+    "Fatigue": {
+      "precision": 0.6666666666666666,
+      "recall": 1.0,
+      "f1-score": 0.8,
+      "support": 2.0
+    },
+    "Flu": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2.0
+    },
+    "Food Poisoning": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 3.0
+    },
+    "Pneumonia": {
+      "precision": 0.5,
+      "recall": 0.5,
+      "f1-score": 0.5,
+      "support": 2.0
+    },
+    "Throat Infection": {
+      "precision": 0.5,
+      "recall": 1.0,
+      "f1-score": 0.6666666666666666,
+      "support": 2.0
+    },
+    "Viral Fever": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2.0
+    },
+    "accuracy": 0.75,
+    "macro avg": {
+      "precision": 0.6851851851851851,
+      "recall": 0.7592592592592593,
+      "f1-score": 0.7074074074074075,
+      "support": 20.0
     },
     "weighted avg": {
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1-score": 0.0,
-      "support": 2.0
+      "precision": 0.6916666666666667,
+      "recall": 0.75,
+      "f1-score": 0.7066666666666667,
+      "support": 20.0
     }
   }
 }

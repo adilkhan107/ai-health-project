@@ -1,6 +1,6 @@
-# 🏥 Rural Healthcare AI Diagnosis Predictor
+# 🏥 Early Disease Prediction System
 
-An AI-powered healthcare diagnosis system designed for rural areas in India. It combines machine learning, OpenAI GPT, and interactive maps to help predict diseases and locate nearby doctors.
+An AI-powered healthcare diagnosis system for early disease detection and prediction. It combines machine learning, OpenAI GPT, and interactive maps to help predict diseases and locate nearby doctors.
 
 ---
 
