@@ -246,12 +246,18 @@ def main_app():
     .stNumberInput > div > div > input,
     .stTextArea > div > div > textarea {
         border-radius: 9px !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
-        background: rgba(255,255,255,0.04) !important;
-        color: #e2e8f0 !important;
+        border: 1px solid rgba(255,255,255,0.15) !important;
+        background: #0d1f38 !important;
+        color: #f1f5f9 !important;
+        caret-color: #00ffc8 !important;
         font-family: 'Inter', sans-serif !important;
-        font-size: 0.88rem !important;
+        font-size: 0.92rem !important;
         transition: border-color 0.18s, box-shadow 0.18s !important;
+    }
+    .stTextInput > div > div > input::placeholder,
+    .stNumberInput > div > div > input::placeholder,
+    .stTextArea > div > div > textarea::placeholder {
+        color: #475569 !important;
     }
     .stTextInput > div > div > input:focus,
     .stNumberInput > div > div > input:focus,
@@ -259,12 +265,23 @@ def main_app():
         border-color: #00ffc8 !important;
         box-shadow: 0 0 0 3px rgba(0,255,200,0.1), 0 0 12px rgba(0,255,200,0.08) !important;
         outline: none !important;
+        background: #0f2540 !important;
     }
     .stSelectbox > div > div {
         border-radius: 9px !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
-        background: rgba(255,255,255,0.04) !important;
-        color: #e2e8f0 !important;
+        border: 1px solid rgba(255,255,255,0.15) !important;
+        background: #0d1f38 !important;
+        color: #f1f5f9 !important;
+    }
+    /* Selectbox dropdown text */
+    .stSelectbox > div > div > div {
+        color: #f1f5f9 !important;
+    }
+    /* Number input buttons */
+    .stNumberInput > div > div > div > button {
+        background: rgba(255,255,255,0.06) !important;
+        color: #94a3b8 !important;
+        border-color: rgba(255,255,255,0.1) !important;
     }
     .stTextInput label, .stNumberInput label,
     .stSelectbox label, .stTextArea label,
@@ -626,53 +643,73 @@ with tab1:
     with col2:
         st.subheader("📋 Medical Details")
         blood_pressure = st.selectbox("🩸 Blood Pressure", ["Normal", "High", "Low"])
-        symptoms       = st.selectbox("🤒 Primary Symptom", ["Cough", "Fever", "Fatigue", "Headache", "Nausea", "Other"])
+        symptoms       = st.text_area(
+            "🤒 Symptoms (describe all symptoms)",
+            placeholder="e.g. fever cough headache tiredness\nOr: chest pain breathlessness wheezing\nOr: nausea vomiting stomach pain diarrhea",
+            height=110,
+            help="Write all symptoms separated by spaces or commas. More symptoms = better prediction accuracy."
+        )
         weight         = st.number_input("⚖️ Weight (kg)", min_value=1, max_value=200, value=60)
         allergies      = st.text_input("⚠️ Known Allergies", placeholder="e.g. Penicillin, Aspirin")
+    # Symptom hint chips
+    st.markdown("""
+<div style="margin: -8px 0 12px; display:flex; flex-wrap:wrap; gap:6px;">
+    <span style="font-size:0.75rem; color:#64748b; padding-top:4px;">Quick add:</span>
+    <code style="background:rgba(0,255,200,0.08);border:1px solid rgba(0,255,200,0.2);border-radius:6px;padding:2px 8px;font-size:0.75rem;color:#00ffc8;cursor:pointer;">fever</code>
+    <code style="background:rgba(0,255,200,0.08);border:1px solid rgba(0,255,200,0.2);border-radius:6px;padding:2px 8px;font-size:0.75rem;color:#00ffc8;">cough</code>
+    <code style="background:rgba(0,255,200,0.08);border:1px solid rgba(0,255,200,0.2);border-radius:6px;padding:2px 8px;font-size:0.75rem;color:#00ffc8;">headache</code>
+    <code style="background:rgba(0,255,200,0.08);border:1px solid rgba(0,255,200,0.2);border-radius:6px;padding:2px 8px;font-size:0.75rem;color:#00ffc8;">fatigue</code>
+    <code style="background:rgba(0,255,200,0.08);border:1px solid rgba(0,255,200,0.2);border-radius:6px;padding:2px 8px;font-size:0.75rem;color:#00ffc8;">breathlessness</code>
+    <code style="background:rgba(0,255,200,0.08);border:1px solid rgba(0,255,200,0.2);border-radius:6px;padding:2px 8px;font-size:0.75rem;color:#00ffc8;">nausea</code>
+    <code style="background:rgba(0,255,200,0.08);border:1px solid rgba(0,255,200,0.2);border-radius:6px;padding:2px 8px;font-size:0.75rem;color:#00ffc8;">throat</code>
+    <code style="background:rgba(0,255,200,0.08);border:1px solid rgba(0,255,200,0.2);border-radius:6px;padding:2px 8px;font-size:0.75rem;color:#00ffc8;">wheezing</code>
+    <code style="background:rgba(0,255,200,0.08);border:1px solid rgba(0,255,200,0.2);border-radius:6px;padding:2px 8px;font-size:0.75rem;color:#00ffc8;">diarrhea</code>
+    <code style="background:rgba(0,255,200,0.08);border:1px solid rgba(0,255,200,0.2);border-radius:6px;padding:2px 8px;font-size:0.75rem;color:#00ffc8;">rash</code>
+    <code style="background:rgba(0,255,200,0.08);border:1px solid rgba(0,255,200,0.2);border-radius:6px;padding:2px 8px;font-size:0.75rem;color:#00ffc8;">joint pain</code>
+    <code style="background:rgba(0,255,200,0.08);border:1px solid rgba(0,255,200,0.2);border-radius:6px;padding:2px 8px;font-size:0.75rem;color:#00ffc8;">chest pain</code>
+</div>
+""", unsafe_allow_html=True)
     if not MODEL_AVAILABLE:
         st.warning("Single prediction is disabled because the model file is unavailable.")
     elif st.button("🔍 Predict Diagnosis & Medicine", key="predict_btn"):
         with st.spinner("🔄 Analyzing patient data..."):
             try:
-                # Get training info
-                feature_order  = TRAIN_INFO.get('feature_columns', ['Age', 'Gender', 'Temperature', 'Heart_Rate', 'Blood_Pressure', 'Symptom_Score'])
-                numeric_cols   = TRAIN_INFO.get('numeric_cols', feature_order)
-                symptom_keywords = TRAIN_INFO.get('symptom_keywords', {})
-                
-                # Calculate Symptom_Score from symptoms text
-                symptoms_lower = symptoms.lower()
-                symptom_score = 0
-                for keyword, score_val in symptom_keywords.items():
-                    if keyword in symptoms_lower:
-                        symptom_score += score_val
-                
-                # Encode gender: Male=0, Female=1
+                feature_order    = pipeline.get('feature_columns', TRAIN_INFO.get('feature_columns', []))
+                symptom_keywords = pipeline.get('symptom_keywords', TRAIN_INFO.get('symptom_keywords', {}))
+                symptom_flags    = pipeline.get('symptom_flags', TRAIN_INFO.get('symptom_flags', []))
+                bp_mapping       = pipeline.get('bp_map', {'Low': 0, 'Normal': 1, 'High': 2})
+
+                symptoms_lower = symptoms.lower().replace(',', ' ')
+
+                # Symptom_Score
+                symptom_score = sum(v for k, v in symptom_keywords.items() if k in symptoms_lower)
+                if symptoms_lower.strip() and symptom_score == 0:
+                    symptom_score = 1
+
                 gender_encoded = 0 if gender == 'Male' else 1
-                
-                # Encode Blood_Pressure: Low=0, Normal=1, High=2
-                bp_mapping = {'Low': 0, 'Normal': 1, 'High': 2}
-                bp_encoded = bp_mapping.get(blood_pressure, 1)  # Default to Normal if unknown
-                
-                # Create input data in the exact order of feature_columns (all numeric)
+                bp_encoded     = bp_mapping.get(blood_pressure, 1)
+
+                # Build input row with all features
                 raw = {
-                    'Age': float(age), 
-                    'Gender': float(gender_encoded), 
-                    'Temperature': float(temperature), 
-                    'Heart_Rate': float(heart_rate),
-                    'Blood_Pressure': float(bp_encoded), 
-                    'Symptom_Score': float(symptom_score)
+                    'Age':          float(age),
+                    'Gender_enc':   float(gender_encoded),
+                    'Temperature':  float(temperature),
+                    'Heart_Rate':   float(heart_rate),
+                    'BP_enc':       float(bp_encoded),
+                    'Symptom_Score': float(symptom_score),
                 }
-                # Create DataFrame with columns in training order
+                # Add individual symptom binary flags
+                for flag in symptom_flags:
+                    raw[f'sym_{flag}'] = 1 if flag in symptoms_lower else 0
+
                 input_data = pd.DataFrame([raw])[feature_order]
-                
-                # Apply preprocessor to scale features
+
+                # Apply preprocessor if present
                 preprocessor = pipeline.get('preprocessor')
                 if preprocessor is not None:
                     try:
-                        # Transform using the preprocessor
                         processed = preprocessor.transform(input_data)
-                        # Ensure it's a 2D array and convert to DataFrame
-                        if hasattr(processed, 'toarray'):  # sparse matrix
+                        if hasattr(processed, 'toarray'):
                             processed = processed.toarray()
                         processed_df = pd.DataFrame(processed, columns=feature_order)
                     except Exception as e:
@@ -775,6 +812,35 @@ with tab1:
                     'temperature': temperature, 'heart_rate': heart_rate,
                     'blood_pressure': blood_pressure, 'symptoms': symptoms
                 }
+
+                # ── Auto-save to medical history if patient name provided ──
+                if p_name.strip():
+                    try:
+                        medicine_prescribed = details.get('medicine', medicine_mapping.get(prediction, ''))
+                        # Check if patient already exists by name+age, else create
+                        all_patients = db.get_all_patients()
+                        existing = all_patients[
+                            (all_patients['name'].str.lower() == p_name.strip().lower()) &
+                            (all_patients['age'] == age)
+                        ] if not all_patients.empty else pd.DataFrame()
+
+                        if not existing.empty:
+                            pid = int(existing.iloc[0]['patient_id'])
+                        else:
+                            pid = db.add_patient(p_name.strip(), age, gender)
+
+                        db.add_diagnosis(
+                            patient_id=pid,
+                            symptoms=symptoms,
+                            diagnosis=prediction,
+                            temperature=temperature,
+                            heart_rate=heart_rate,
+                            blood_pressure=blood_pressure,
+                            medicine=medicine_prescribed
+                        )
+                        st.success(f"📋 Visit saved to medical history for **{p_name}** (Patient ID: {pid})")
+                    except Exception as db_err:
+                        st.warning(f"Could not save to history: {db_err}")
 
             except Exception as e:
                 st.error(f"❌ Prediction failed: {e}")
