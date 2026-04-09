@@ -9,6 +9,27 @@ from typing import List, Dict, Tuple, Optional
 import pandas as pd
 import streamlit as st
 
+class SpecialtyMatcher:
+    """Map medical diagnoses to required doctor specialties"""
+    
+    SPECIALTY_MAPPING = {
+        "Common Cold": ["General Practitioner"],
+        "Viral Fever": ["General Practitioner"],
+        "Pneumonia": ["Respiratory Specialist", "General Practitioner"],
+        "Flu": ["General Practitioner"],
+        "Food Poisoning": ["Internal Medicine"],
+        "Dengue (Mild)": ["Internal Medicine", "Infectious Disease"],
+        "Bronchitis": ["Respiratory Specialist"],
+        "Fatigue": ["General Practitioner"],
+        "Throat Infection": ["Internal Medicine"],
+    }
+    
+    @classmethod
+    def get_matching_specialties(cls, diagnosis: str) -> list:
+        """Get recommended specialties for a diagnosis"""
+        return cls.SPECIALTY_MAPPING.get(diagnosis, ["General Practitioner"])
+
+
 class DoctorFinder:
     """Find doctors near patient location"""
     
@@ -89,7 +110,7 @@ class DoctorFinder:
     def find_by_specialty(cls, specialty: str, patient_lat: float = None, 
                          patient_lon: float = None, radius_km: float = 10.0) -> List[Dict]:
         """Find doctors by specialty"""
-        specialists = [d for d in cls.DOCTORS_DATABASE 
+        specialists = [d.copy() for d in cls.DOCTORS_DATABASE 
                       if specialty.lower() in d['specialty'].lower()]
         
         if patient_lat and patient_lon:
@@ -101,7 +122,7 @@ class DoctorFinder:
             
             return sorted(specialists, key=lambda x: x['distance_km'])
         
-        return specialists
+        return sorted(specialists, key=lambda x: x.get('rating', 0), reverse=True)
     
     @classmethod
     def get_recommended_specialty(cls, diagnosis: str) -> str:

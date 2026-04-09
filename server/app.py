@@ -321,7 +321,7 @@ db = PatientHistoryDB()
 voice = VoiceInput()
 
 # Tabs with creative icons
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "💊 Single Prediction",
     "📊 Batch Prediction",
     "🎤 Voice Input",
@@ -960,8 +960,8 @@ with tab7:
     elif "real_doctors_result" in st.session_state:
         st.warning("⚠️ No healthcare providers found in this area. Try increasing the radius.")
 
-# ===== TAB 8: Medicine Guide =====
-with tab8:
+# ===== TAB 7: Medicine Guide =====
+with tab7:
     st.header("💉 Medicine & Treatment Guide")
     st.markdown('<div class="card">Complete reference guide for medicines suggested by the AI model.</div>', unsafe_allow_html=True)
     

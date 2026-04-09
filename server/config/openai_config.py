@@ -3,7 +3,12 @@
 # Get your API key from: https://platform.openai.com/api-keys
 
 # 🔑 REPLACE THIS WITH YOUR ACTUAL OPENAI API KEY 🔑
-OPENAI_API_KEY = "AIzaSyCIXa6I53FtZLWjpiDq5-tXi4VyK7Q7LwY"  # <-- REPLACE THIS LINE
+# RECOMMENDED: Use environment variable for security
+import os
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
+# Alternative: Set directly (less secure)
+# OPENAI_API_KEY = "sk-proj-your-actual-key-here"
 
 # Example of what a real API key looks like:
 # OPENAI_API_KEY = "sk-proj-ABC123def456ghi789jkl012mno345pqr678stu901vwx234yz"

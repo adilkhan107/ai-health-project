@@ -99,6 +99,7 @@ class PatientHistoryDB:
                   blood_pressure, medicine, notes))
             conn.commit()
             return cursor.lastrowid
+            return cursor.lastrowid
     
     def get_patient_history(self, patient_id: int) -> List[Dict]:
         """Get complete medical history of patient"""
